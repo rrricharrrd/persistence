@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::iter::Zip;
 //use std::cmp::Ordering;
 
 
@@ -14,7 +13,7 @@ struct Entry {
 
 // Define a struct for simplices (placeholder)
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct Simplex {
+pub struct Simplex {
     vertices: Vec<usize>,
 }
 
@@ -24,16 +23,16 @@ impl Simplex {
     }
 }
 
-fn remove_pivot_rows(
-    simplex_ix: usize,
-    boundary_op: &Vec<Vec<i32>>,
-    table: &Vec<Entry>,
-) -> Vec<usize> {
+fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry]) -> Vec<usize> {
     // Get boundary indices where boundary_op[:, simplex_ix] is nonzero
     let mut boundary: Vec<usize> = boundary_op
         .iter()
         .enumerate()
-        .filter_map(|(bx, row)| if row[simplex_ix] != 0 { Some(bx) } else { None })
+        .filter_map(|(bx, row)| if row[simplex_ix] != 0 {
+            Some(bx)
+        } else {
+            None
+        })
         .collect();
 
     // Keep only marked entries
@@ -41,7 +40,8 @@ fn remove_pivot_rows(
 
     println!(
         "Removing pivot from {:?}, full-boundary={:?}",
-        table[simplex_ix].simplex, boundary
+        table[simplex_ix].simplex,
+        boundary
     );
 
     while let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
@@ -53,25 +53,29 @@ fn remove_pivot_rows(
 
     println!(
         "Removing pivot from {:?}: reduced-boundary={:?}",
-        table[simplex_ix].simplex, boundary
+        table[simplex_ix].simplex,
+        boundary
     );
 
     boundary
 }
 
 
-fn compute_intervals(
-    simplices: &Vec<Simplex>,
-    simplices_map: &HashMap<Simplex, usize>, 
-    boundary_op: &Vec<Vec<i32>>
-) -> Vec<HashSet<(usize, usize)>> { // (Vec<HashSet<(usize, usize)>>, Vec<Entry>) {
+pub fn compute_intervals(
+    simplices: &[Simplex],
+    simplices_map: &HashMap<Simplex, usize>,
+    boundary_op: &[Vec<i32>],
+) -> Vec<HashSet<(usize, usize)>> {
+    // (Vec<HashSet<(usize, usize)>>, Vec<Entry>) {
     let mut table: Vec<Entry> = simplices
         .iter()
-        .map(|s| Entry {
-            simplex: s.clone(),
-            level: *simplices_map.get(s).unwrap(),
-            is_marked: false,
-            chain: Vec::new(),
+        .map(|s| {
+            Entry {
+                simplex: s.clone(),
+                level: *simplices_map.get(s).unwrap(),
+                is_marked: false,
+                chain: Vec::new(),
+            }
         })
         .collect();
 
@@ -86,19 +90,17 @@ fn compute_intervals(
 
         if boundary.is_empty() {
             table[sx].is_marked = true;
-        } else {
-            if let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
-                table[max_bounding_chain].chain = boundary.clone();
-                let dim = table[sx].simplex.dim();
-                intervals[dim].insert((table[max_bounding_chain].level, table[sx].level));
-            }
+        } else if let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
+            table[max_bounding_chain].chain = boundary.clone();
+            let dim = table[sx].simplex.dim();
+            intervals[dim].insert((table[max_bounding_chain].level, table[sx].level));
         }
     }
 
-    for sx in 0..table.len() {
-        if table[sx].is_marked && table[sx].chain.is_empty() {
-            let dim = table[sx].simplex.dim();
-            intervals[dim].insert((table[sx].level, usize::MAX)); // usize::MAX for infinity
+    for entry in table {
+        if entry.is_marked && entry.chain.is_empty() {
+            let dim = entry.simplex.dim();
+            intervals[dim].insert((entry.level, usize::MAX)); // usize::MAX for infinity
         }
     }
 
@@ -107,7 +109,10 @@ fn compute_intervals(
 }
 
 
-fn compute_boundary_op(ordering: &HashMap<Simplex, usize>, simplices: &Vec<Simplex>) -> Vec<Vec<i32>> {
+pub fn compute_boundary_op(
+    ordering: &HashMap<Simplex, usize>,
+    simplices: &Vec<Simplex>,
+) -> Vec<Vec<i32>> {
     let n = ordering.len();
     let mut boundary_op = vec![vec![0; n]; n]; // Initialize zero matrix
 
@@ -135,26 +140,30 @@ mod tests {
 
     #[test]
     fn persistence_intervals() {
-        let levels = vec![0,0,1,1,1,1,2,2,3,4,5];
+        let levels = vec![0, 0, 1, 1, 1, 1, 2, 2, 3, 4, 5];
         let simplices = vec![
-            Simplex{ vertices: vec![0] },
-            Simplex{ vertices: vec![1] },
-            Simplex{ vertices: vec![2] },
-            Simplex{ vertices: vec![3] },
-            Simplex{ vertices: vec![0,1] },
-            Simplex{ vertices: vec![1,2] },
-            Simplex{ vertices: vec![2,3] },
-            Simplex{ vertices: vec![0,3] },
-            Simplex{ vertices: vec![0,2] },
-            Simplex{ vertices: vec![0,1,2] },
-            Simplex{ vertices: vec![0,2,3] },
+            Simplex { vertices: vec![0] },
+            Simplex { vertices: vec![1] },
+            Simplex { vertices: vec![2] },
+            Simplex { vertices: vec![3] },
+            Simplex { vertices: vec![0, 1] },
+            Simplex { vertices: vec![1, 2] },
+            Simplex { vertices: vec![2, 3] },
+            Simplex { vertices: vec![0, 3] },
+            Simplex { vertices: vec![0, 2] },
+            Simplex { vertices: vec![0, 1, 2] },
+            Simplex { vertices: vec![0, 2, 3] },
         ];
-        let simplices_map: HashMap<Simplex, usize> = simplices.clone().into_iter().zip(levels.into_iter()).collect();
+        let simplices_map: HashMap<Simplex, usize> = simplices
+            .clone()
+            .into_iter()
+            .zip(levels.into_iter())
+            .collect();
         println!("Simplices {:?}", simplices_map);
 
         let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices_map, &simplices);
         println!("Boundary {:?}", boundary_op);
-        
+
         let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
         println!("Result {:?}", result);
     }
