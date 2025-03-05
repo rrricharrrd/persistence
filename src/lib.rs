@@ -1,17 +1,16 @@
 use std::collections::{HashMap, HashSet};
-//use std::cmp::Ordering;
 
 
 // Define a struct for a simplex entry
 #[derive(Clone, Debug)]
 struct Entry {
     simplex: Simplex,
-    level: usize,
-    is_marked: bool,
-    chain: Vec<usize>,
+    level: usize,  // Persistence level
+    is_marked: bool,  // Indicates non-pivot row
+    chain: Vec<usize>,  // Indicates (reduced) boundary chain
 }
 
-// Define a struct for simplices (placeholder)
+/// Simplex (as defined via its vertices)
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Simplex {
     vertices: Vec<usize>,
@@ -61,6 +60,7 @@ fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry
 }
 
 
+/// Compute persistence intervals for simplicial complex
 pub fn compute_intervals(
     simplices: &[Simplex],
     simplices_map: &HashMap<Simplex, usize>,
@@ -106,6 +106,7 @@ pub fn compute_intervals(
 }
 
 
+/// Compute boundary operator for given simplicial complex
 pub fn compute_boundary_op(simplices: &Vec<Simplex>) -> Vec<Vec<i32>> {
     let n = simplices.len();
     let ordering: HashMap<Simplex, usize> = simplices
@@ -139,7 +140,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn persistence_intervals() {
+    fn test_persistence_intervals() {
         let simplices = vec![
             Simplex { vertices: vec![0] },
             Simplex { vertices: vec![1] },
