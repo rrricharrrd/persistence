@@ -66,7 +66,6 @@ pub fn compute_intervals(
     simplices_map: &HashMap<Simplex, usize>,
     boundary_op: &[Vec<i32>],
 ) -> Vec<HashSet<(usize, usize)>> {
-    // (Vec<HashSet<(usize, usize)>>, Vec<Entry>) {
     let mut table: Vec<Entry> = simplices
         .iter()
         .map(|s| {
@@ -103,17 +102,18 @@ pub fn compute_intervals(
             intervals[dim].insert((entry.level, usize::MAX)); // usize::MAX for infinity
         }
     }
-
-    //(intervals, table)
     intervals
 }
 
 
-pub fn compute_boundary_op(
-    ordering: &HashMap<Simplex, usize>,
-    simplices: &Vec<Simplex>,
-) -> Vec<Vec<i32>> {
-    let n = ordering.len();
+pub fn compute_boundary_op(simplices: &Vec<Simplex>) -> Vec<Vec<i32>> {
+    let n = simplices.len();
+    let ordering: HashMap<Simplex, usize> = simplices
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (v.clone(), i))
+        .collect();
+
     let mut boundary_op = vec![vec![0; n]; n]; // Initialize zero matrix
 
     for s in simplices {
@@ -140,7 +140,6 @@ mod tests {
 
     #[test]
     fn persistence_intervals() {
-        let levels = vec![0, 0, 1, 1, 1, 1, 2, 2, 3, 4, 5];
         let simplices = vec![
             Simplex { vertices: vec![0] },
             Simplex { vertices: vec![1] },
@@ -154,6 +153,9 @@ mod tests {
             Simplex { vertices: vec![0, 1, 2] },
             Simplex { vertices: vec![0, 2, 3] },
         ];
+        let levels = vec![0, 0, 1, 1, 1, 1, 2, 2, 3, 4, 5];
+        assert_eq!(simplices.len(), levels.len());
+
         let simplices_map: HashMap<Simplex, usize> = simplices
             .clone()
             .into_iter()
@@ -161,7 +163,7 @@ mod tests {
             .collect();
         println!("Simplices {:?}", simplices_map);
 
-        let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices_map, &simplices);
+        let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices);
         println!("Boundary {:?}", boundary_op);
 
         let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
