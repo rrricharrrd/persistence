@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::iter::Zip;
 //use std::cmp::Ordering;
 
 
@@ -60,21 +61,22 @@ fn remove_pivot_rows(
 
 
 fn compute_intervals(
-    simplices: &HashMap<Simplex, usize>, 
+    simplices: &Vec<Simplex>,
+    simplices_map: &HashMap<Simplex, usize>, 
     boundary_op: &Vec<Vec<i32>>
-) -> (Vec<HashSet<(usize, usize)>>, Vec<Entry>) {
+) -> Vec<HashSet<(usize, usize)>> { // (Vec<HashSet<(usize, usize)>>, Vec<Entry>) {
     let mut table: Vec<Entry> = simplices
         .iter()
-        .map(|(s, &v)| Entry {
+        .map(|s| Entry {
             simplex: s.clone(),
-            level: v,
+            level: *simplices_map.get(s).unwrap(),
             is_marked: false,
             chain: Vec::new(),
         })
         .collect();
 
     let mut max_dim = 0;
-    for simplex in simplices.keys() {
+    for simplex in simplices_map.keys() {
         max_dim = max_dim.max(simplex.dim());
     }
     let mut intervals: Vec<HashSet<(usize, usize)>> = vec![HashSet::new(); max_dim + 1];
@@ -100,7 +102,8 @@ fn compute_intervals(
         }
     }
 
-    (intervals, table)
+    //(intervals, table)
+    intervals
 }
 
 
@@ -132,24 +135,27 @@ mod tests {
 
     #[test]
     fn persistence_intervals() {
-        let mut simplices: HashMap<Simplex, usize> = HashMap::new();
-        simplices.insert(Simplex{ vertices: vec![0] }, 0);
-        simplices.insert(Simplex{ vertices: vec![1] }, 0);
-        simplices.insert(Simplex{ vertices: vec![2] }, 1);
-        simplices.insert(Simplex{ vertices: vec![3] }, 1);
-        simplices.insert(Simplex{ vertices: vec![0,1] }, 1);
-        simplices.insert(Simplex{ vertices: vec![1,2] }, 1);
-        simplices.insert(Simplex{ vertices: vec![2,3] }, 2);
-        simplices.insert(Simplex{ vertices: vec![0,3] }, 2);
-        simplices.insert(Simplex{ vertices: vec![0,2] }, 3);
-        simplices.insert(Simplex{ vertices: vec![0,1,2] }, 4);
-        simplices.insert(Simplex{ vertices: vec![0,2,3] }, 5);
-        println!("Simplices {:?}", simplices);
+        let levels = vec![0,0,1,1,1,1,2,2,3,4,5];
+        let simplices = vec![
+            Simplex{ vertices: vec![0] },
+            Simplex{ vertices: vec![1] },
+            Simplex{ vertices: vec![2] },
+            Simplex{ vertices: vec![3] },
+            Simplex{ vertices: vec![0,1] },
+            Simplex{ vertices: vec![1,2] },
+            Simplex{ vertices: vec![2,3] },
+            Simplex{ vertices: vec![0,3] },
+            Simplex{ vertices: vec![0,2] },
+            Simplex{ vertices: vec![0,1,2] },
+            Simplex{ vertices: vec![0,2,3] },
+        ];
+        let simplices_map: HashMap<Simplex, usize> = simplices.clone().into_iter().zip(levels.into_iter()).collect();
+        println!("Simplices {:?}", simplices_map);
 
-        let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices, &Vec::from_iter(simplices.clone().into_keys().into_iter()));
+        let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices_map, &simplices);
         println!("Boundary {:?}", boundary_op);
         
-        let result = compute_intervals(&simplices, &boundary_op);
+        let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
         println!("Result {:?}", result);
     }
 }
