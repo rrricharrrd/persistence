@@ -1,13 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 
 // Define a struct for a simplex entry
 #[derive(Clone, Debug)]
 struct Entry {
     simplex: Simplex,
-    level: usize, // Persistence level
-    is_marked: bool, // Indicates non-pivot row
-    chain: Vec<usize>, // Indicates (reduced) boundary chain
+    filtration_level: usize,
+    is_generator_cycle: bool,
+    reduced_boundary: Vec<usize>,
 }
 
 /// Simplex (as defined via its vertices)
@@ -41,13 +41,13 @@ fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry
     );
 
     // Keep only marked entries
-    boundary.retain(|&bx| table[bx].is_marked);
+    boundary.retain(|&bx| table[bx].is_generator_cycle);
 
-    while let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
-        if table[max_bounding_chain].chain.is_empty() {
+    while let Some(&max_boundary_chain) = boundary.iter().max_by_key(|&&b| table[b].filtration_level) {
+        if table[max_boundary_chain].reduced_boundary.is_empty() {
             break;
         }
-        boundary.retain(|&b| !table[max_bounding_chain].chain.contains(&b));  // TODO check this
+        boundary.retain(|&b| !table[max_boundary_chain].reduced_boundary.contains(&b)); // TODO check this
     }
 
     println!(
@@ -65,38 +65,38 @@ pub fn compute_intervals(
     simplices: &[Simplex],
     simplices_map: &HashMap<Simplex, usize>,
     boundary_op: &[Vec<i32>],
-) -> Vec<HashSet<(usize, usize)>> {
+) -> Vec<Vec<(usize, usize)>> {
     let mut table: Vec<Entry> = simplices
         .iter()
         .map(|s| {
             Entry {
                 simplex: s.clone(),
-                level: *simplices_map.get(s).unwrap(),
-                is_marked: false,
-                chain: Vec::new(),
+                filtration_level: *simplices_map.get(s).unwrap(),
+                is_generator_cycle: false,
+                reduced_boundary: Vec::new(),
             }
         })
         .collect();
 
     let max_dim = simplices.iter().map(|s| s.dim()).max().unwrap();
-    let mut intervals: Vec<HashSet<(usize, usize)>> = vec![HashSet::new(); max_dim + 1];
+    let mut intervals: Vec<Vec<(usize, usize)>> = vec![Vec::new(); max_dim + 1];
 
     for sx in 0..table.len() {
         let boundary = remove_pivot_rows(sx, boundary_op, &table);
 
         if boundary.is_empty() {
-            table[sx].is_marked = true;
-        } else if let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
-            table[max_bounding_chain].chain = boundary.clone();
-            let dim = table[sx].simplex.dim();
-            intervals[dim].insert((table[max_bounding_chain].level, table[sx].level));
+            table[sx].is_generator_cycle = true;
+        } else if let Some(&max_boundary_chain) = boundary.iter().max_by_key(|&&b| table[b].filtration_level) {
+            table[max_boundary_chain].reduced_boundary = boundary.clone();
+            let dim = table[max_boundary_chain].simplex.dim();
+            intervals[dim].push((table[max_boundary_chain].filtration_level, table[sx].filtration_level));
         }
     }
 
     for entry in table {
-        if entry.is_marked && entry.chain.is_empty() {
+        if entry.is_generator_cycle && entry.reduced_boundary.is_empty() {
             let dim = entry.simplex.dim();
-            intervals[dim].insert((entry.level, usize::MAX)); // usize::MAX for infinity
+            intervals[dim].push((entry.filtration_level, usize::MAX)); // usize::MAX for infinity
         }
     }
     intervals
