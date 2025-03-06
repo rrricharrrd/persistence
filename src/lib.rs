@@ -5,9 +5,9 @@ use std::collections::{HashMap, HashSet};
 #[derive(Clone, Debug)]
 struct Entry {
     simplex: Simplex,
-    level: usize,  // Persistence level
-    is_marked: bool,  // Indicates non-pivot row
-    chain: Vec<usize>,  // Indicates (reduced) boundary chain
+    level: usize, // Persistence level
+    is_marked: bool, // Indicates non-pivot row
+    chain: Vec<usize>, // Indicates (reduced) boundary chain
 }
 
 /// Simplex (as defined via its vertices)
@@ -34,20 +34,20 @@ fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry
         })
         .collect();
 
-    // Keep only marked entries
-    boundary.retain(|&b| table[b].is_marked);
-
     println!(
         "Removing pivot from {:?}, full-boundary={:?}",
         table[simplex_ix].simplex,
         boundary
     );
 
+    // Keep only marked entries
+    boundary.retain(|&bx| table[bx].is_marked);
+
     while let Some(&max_bounding_chain) = boundary.iter().max_by_key(|&&b| table[b].level) {
         if table[max_bounding_chain].chain.is_empty() {
             break;
         }
-        boundary.retain(|&b| b != max_bounding_chain);
+        boundary.retain(|&b| !table[max_bounding_chain].chain.contains(&b));  // TODO check this
     }
 
     println!(
@@ -78,10 +78,7 @@ pub fn compute_intervals(
         })
         .collect();
 
-    let mut max_dim = 0;
-    for simplex in simplices_map.keys() {
-        max_dim = max_dim.max(simplex.dim());
-    }
+    let max_dim = simplices.iter().map(|s| s.dim()).max().unwrap();
     let mut intervals: Vec<HashSet<(usize, usize)>> = vec![HashSet::new(); max_dim + 1];
 
     for sx in 0..table.len() {
