@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 
 // Define a struct for a simplex entry
@@ -6,8 +6,9 @@ use std::collections::HashMap;
 struct Entry {
     simplex: Simplex,
     filtration_level: usize,
-    is_generator_cycle: bool,
-    reduced_boundary: Vec<usize>,
+    is_marked: bool,
+    co_bounds: HashSet<usize>,
+    //bounding_chain: Some(usize),
 }
 
 /// Simplex (as defined via its vertices)
@@ -22,9 +23,13 @@ impl Simplex {
     }
 }
 
-fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry]) -> Vec<usize> {
-    // Get boundary indices where boundary_op[:, simplex_ix] is nonzero
-    let mut boundary: Vec<usize> = boundary_op
+fn remove_pivot_rows(
+    simplex_ix: usize,
+    boundary_op: &[Vec<i32>],
+    table: &[Entry],
+) -> HashSet<usize> {
+    // Get boundary indices of given simplex
+    let mut boundary: HashSet<usize> = boundary_op
         .iter()
         .enumerate()
         .filter_map(|(bx, row)| if row[simplex_ix] != 0 {
@@ -34,20 +39,27 @@ fn remove_pivot_rows(simplex_ix: usize, boundary_op: &[Vec<i32>], table: &[Entry
         })
         .collect();
 
+    // Remove any boundary chains that don't generate the cycles in that dimension
+    boundary.retain(|&bx| table[bx].is_marked);
     println!(
         "Removing pivot from {:?}, full-boundary={:?}",
         table[simplex_ix].simplex,
         boundary
     );
 
-    // Keep only marked entries
-    boundary.retain(|&bx| table[bx].is_generator_cycle);
-
-    while let Some(&max_boundary_chain) = boundary.iter().max_by_key(|&&b| table[b].filtration_level) {
-        if table[max_boundary_chain].reduced_boundary.is_empty() {
+    // Simulate conversion to echelon form
+    while let Some(b) = boundary.clone().into_iter().max() {
+        if table[b].co_bounds.is_empty() {
             break;
+        } else {
+            for cb in &table[b].co_bounds {
+                if boundary.contains(cb) {
+                    boundary.remove(cb); // Working over Z/2
+                } else {
+                    boundary.insert(*cb);
+                }
+            }
         }
-        boundary.retain(|&b| !table[max_boundary_chain].reduced_boundary.contains(&b)); // TODO check this
     }
 
     println!(
@@ -65,38 +77,42 @@ pub fn compute_intervals(
     simplices: &[Simplex],
     simplices_map: &HashMap<Simplex, usize>,
     boundary_op: &[Vec<i32>],
-) -> Vec<Vec<(usize, usize)>> {
+) -> Vec<HashSet<(usize, usize)>> {
     let mut table: Vec<Entry> = simplices
         .iter()
         .map(|s| {
             Entry {
                 simplex: s.clone(),
                 filtration_level: *simplices_map.get(s).unwrap(),
-                is_generator_cycle: false,
-                reduced_boundary: Vec::new(),
+                is_marked: false,
+                co_bounds: HashSet::new(),
             }
         })
         .collect();
 
     let max_dim = simplices.iter().map(|s| s.dim()).max().unwrap();
-    let mut intervals: Vec<Vec<(usize, usize)>> = vec![Vec::new(); max_dim + 1];
+    let mut intervals: Vec<HashSet<(usize, usize)>> = vec![HashSet::new(); max_dim + 1];
 
     for sx in 0..table.len() {
         let boundary = remove_pivot_rows(sx, boundary_op, &table);
 
         if boundary.is_empty() {
-            table[sx].is_generator_cycle = true;
-        } else if let Some(&max_boundary_chain) = boundary.iter().max_by_key(|&&b| table[b].filtration_level) {
-            table[max_boundary_chain].reduced_boundary = boundary.clone();
-            let dim = table[max_boundary_chain].simplex.dim();
-            intervals[dim].push((table[max_boundary_chain].filtration_level, table[sx].filtration_level));
+            table[sx].is_marked = true;
+        } else if let Some(b) = boundary.clone().into_iter().max() {
+            println!("Storing {:?} in {:?}", boundary.clone(), b);
+            table[b].co_bounds = boundary.clone();
+
+            let dim = table[b].simplex.dim();
+            intervals[dim].insert((table[b].filtration_level, table[sx].filtration_level));
         }
     }
 
+    println!("Table");
     for entry in table {
-        if entry.is_generator_cycle && entry.reduced_boundary.is_empty() {
+        println!("{:?}", entry);
+        if entry.is_marked && entry.co_bounds.is_empty() {
             let dim = entry.simplex.dim();
-            intervals[dim].push((entry.filtration_level, usize::MAX)); // usize::MAX for infinity
+            intervals[dim].insert((entry.filtration_level, usize::MAX)); // usize::MAX for infinity
         }
     }
     intervals
@@ -166,5 +182,12 @@ mod tests {
 
         let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
         println!("Result {:?}", result);
+
+        let expected = vec![
+            HashSet::from([(0, 1), (1, 1), (1, 2), (0, usize::MAX)]),
+            HashSet::from([(2, 5), (3, 4)]),
+            HashSet::new(),
+        ];
+        assert_eq!(result, expected)
     }
 }
