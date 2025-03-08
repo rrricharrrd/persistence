@@ -100,13 +100,13 @@ pub fn compute_intervals(
 
         if boundary.is_empty() {
             table[sx].is_marked = true;
-        } else if let Some(b) = boundary.clone().into_iter().max() {
-            debug!("Storing {:?} in {:?}", boundary.clone(), b);
-            table[b].co_bounds = boundary.clone();
+        } else if let Some(b) = boundary.iter().max() {
+            debug!("Storing {:?} in {:?}", &boundary, b);
+            table[*b].co_bounds = boundary.clone();
 
-            let dim = table[b].simplex.dim();
+            let dim = table[*b].simplex.dim();
             intervals[dim].insert((
-                table[b].simplex.filtration_level,
+                table[*b].simplex.filtration_level,
                 table[sx].simplex.filtration_level,
             ));
         }
