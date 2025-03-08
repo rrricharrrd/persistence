@@ -31,7 +31,7 @@ fn remove_pivot_rows(
     table: &[Entry],
 ) -> HashSet<usize> {
     // Get boundary indices of given simplex
-    let simplex = table[simplex_ix].simplex.clone();
+    let simplex = &table[simplex_ix].simplex;
     let mut boundary: HashSet<usize> = boundary_op
         .iter()
         .enumerate()
@@ -41,22 +41,22 @@ fn remove_pivot_rows(
             None
         })
         .collect();
-
-    // Remove any boundary chains that don't generate the cycles in that dimension
-    boundary.retain(|&bx| table[bx].is_marked);
     debug!(
         "Removing pivot from {:?}, full-boundary={:?}",
         simplex,
         boundary
     );
 
+    // Remove any boundary chains that don't generate the cycles in that dimension
+    boundary.retain(|&bx| table[bx].is_marked);
+
     // Simulate conversion to echelon form
-    while let Some(b) = boundary.clone().into_iter().max() {
-        if table[b].co_bounds.is_empty() {
+    while let Some(b) = boundary.iter().max() {
+        if table[*b].co_bounds.is_empty() {
             // This row is unclaimed - use as pivot
             break;
         } else {
-            for cb in &table[b].co_bounds {
+            for cb in &table[*b].co_bounds {
                 // Simulate subtracting pivot column (working over Z/2)
                 if boundary.contains(cb) {
                     boundary.remove(cb);
