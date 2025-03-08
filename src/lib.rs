@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use log::debug;
 
 
 // Define a struct for a simplex entry
@@ -41,7 +42,7 @@ fn remove_pivot_rows(
 
     // Remove any boundary chains that don't generate the cycles in that dimension
     boundary.retain(|&bx| table[bx].is_marked);
-    println!(
+    debug!(
         "Removing pivot from {:?}, full-boundary={:?}",
         table[simplex_ix].simplex,
         boundary
@@ -62,7 +63,7 @@ fn remove_pivot_rows(
         }
     }
 
-    println!(
+    debug!(
         "Removing pivot from {:?}: reduced-boundary={:?}",
         table[simplex_ix].simplex,
         boundary
@@ -99,7 +100,7 @@ pub fn compute_intervals(
         if boundary.is_empty() {
             table[sx].is_marked = true;
         } else if let Some(b) = boundary.clone().into_iter().max() {
-            println!("Storing {:?} in {:?}", boundary.clone(), b);
+            debug!("Storing {:?} in {:?}", boundary.clone(), b);
             table[b].co_bounds = boundary.clone();
 
             let dim = table[b].simplex.dim();
@@ -107,9 +108,9 @@ pub fn compute_intervals(
         }
     }
 
-    println!("Table");
+    debug!("Table");
     for entry in table {
-        println!("{:?}", entry);
+        debug!("{:?}", entry);
         if entry.is_marked && entry.co_bounds.is_empty() {
             let dim = entry.simplex.dim();
             intervals[dim].insert((entry.filtration_level, usize::MAX)); // usize::MAX for infinity
@@ -154,6 +155,8 @@ mod tests {
 
     #[test]
     fn test_persistence_intervals() {
+        let _ = env_logger::try_init();
+
         let simplices = vec![
             Simplex { vertices: vec![0] },
             Simplex { vertices: vec![1] },
@@ -175,13 +178,13 @@ mod tests {
             .into_iter()
             .zip(levels.into_iter())
             .collect();
-        println!("Simplices {:?}", simplices_map);
+        debug!("Simplices {:?}", simplices_map);
 
         let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices);
-        println!("Boundary {:?}", boundary_op);
+        debug!("Boundary {:?}", boundary_op);
 
         let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
-        println!("Result {:?}", result);
+        debug!("Result {:?}", result);
 
         let expected = vec![
             HashSet::from([(0, 1), (1, 1), (1, 2), (0, usize::MAX)]),
