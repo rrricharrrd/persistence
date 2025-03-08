@@ -10,6 +10,7 @@ struct Entry {
     co_bounds: HashSet<usize>, // Elements of pivot column
 }
 
+
 /// Simplex (as defined via its vertices)
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Simplex {
@@ -22,6 +23,7 @@ impl Simplex {
         self.vertices.len() - 1
     }
 }
+
 
 fn remove_pivot_rows(
     simplex_ix: usize,
@@ -124,7 +126,7 @@ pub fn compute_intervals(
 
 
 /// Compute boundary operator for given simplicial complex
-pub fn compute_boundary_op(simplices: &Vec<Simplex>) -> Vec<Vec<i32>> {
+pub fn compute_boundary_op(simplices: &[Simplex]) -> Vec<Vec<i32>> {
     let n = simplices.len();
     // TODO throughout using dummy filtration level, as not needed to define boundary matrix
     let ordering: HashMap<Simplex, usize> = simplices
@@ -175,6 +177,7 @@ mod tests {
     fn test_persistence_intervals() {
         let _ = env_logger::try_init();
 
+        // Given
         let simplices = vec![
             Simplex {
                 vertices: vec![0],
@@ -221,13 +224,14 @@ mod tests {
                 filtration_level: 5,
             },
         ];
-
         let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices);
         debug!("Boundary {:?}", boundary_op);
 
+        // When
         let result = compute_intervals(&simplices, &boundary_op);
         debug!("Result {:?}", result);
 
+        // Then
         let expected = vec![
             HashSet::from([(0, 1), (1, 1), (1, 2), (0, usize::MAX)]),
             HashSet::from([(2, 5), (3, 4)]),
