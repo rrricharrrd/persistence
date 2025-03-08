@@ -4,8 +4,8 @@ use log::debug;
 
 // Define a struct for a simplex entry
 #[derive(Clone, Debug)]
-struct Entry {
-    simplex: Simplex,
+struct Entry<'a> {
+    simplex: &'a Simplex,
     is_marked: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
 }
@@ -85,7 +85,7 @@ pub fn compute_intervals(
         .iter()
         .map(|s| {
             Entry {
-                simplex: s.clone(),
+                simplex: s,
                 is_marked: false,
                 co_bounds: HashSet::new(),
             }
