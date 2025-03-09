@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use super::persistence::Simplex;
 
 
 /// Represents a point in d-dimensional space
@@ -43,14 +43,17 @@ impl PointCloud {
     }
 
     /// Construct a Vietoris-Rips complex up to a given distance threshold
-    pub fn vietoris_rips_complex(&self, threshold: f64) -> Vec<HashSet<usize>> {
+    pub fn vietoris_rips_complex(&self, threshold: f64) -> Vec<Simplex> {
         let mut simplices = Vec::new();
         let n = self.points.len();
         let dist_matrix = self.pairwise_distances();
 
         // Add 0-simplices (individual points)
         for i in 0..n {
-            simplices.push(HashSet::from([i]));
+            simplices.push(Simplex {
+                vertices: vec![i],
+                filtration_level: 0,
+            });
         }
 
         // Add 1-simplices (edges)
@@ -58,7 +61,12 @@ impl PointCloud {
         for i in 0..n {
             for j in i + 1..n {
                 if dist_matrix[i][j] <= threshold {
-                    simplices.push(HashSet::from([i, j]));
+                    simplices.push(
+                        Simplex{
+                            vertices: vec![i,j],
+                            filtration_level: dist_matrix[i][j] as usize // TODO float vs int
+                        }
+                    );
                 }
             }
         }
@@ -70,7 +78,15 @@ impl PointCloud {
                     if dist_matrix[i][j] <= threshold && dist_matrix[i][k] <= threshold &&
                         dist_matrix[j][k] <= threshold
                     {
-                        simplices.push(HashSet::from([i, j, k]));
+                        let d = [dist_matrix[i][j], dist_matrix[i][k], dist_matrix[j][k]]
+                            .iter()
+                            .map(|x| *x as usize)   // TODO float vs int
+                            .min()
+                            .unwrap();
+                        simplices.push(Simplex {
+                            vertices: vec![i, j, k],
+                            filtration_level: d,
+                        });
                     }
                 }
             }
@@ -87,7 +103,21 @@ impl PointCloud {
                             dist_matrix[j][l] <= threshold &&
                             dist_matrix[k][l] <= threshold
                         {
-                            simplices.push(HashSet::from([i, j, k, l]));
+                            let d = [
+                                dist_matrix[i][j],
+                                dist_matrix[i][k],
+                                dist_matrix[i][l],
+                                dist_matrix[j][k],
+                                dist_matrix[j][l],
+                                dist_matrix[k][l],
+                            ].iter()
+                                .map(|x| *x as usize)   // TODO float vs int
+                                .min()
+                                .unwrap();
+                            simplices.push(Simplex {
+                                vertices: vec![i, j, k, l],
+                                filtration_level: d,
+                            });
                         }
                     }
                 }
@@ -102,9 +132,12 @@ impl PointCloud {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use log::debug;
 
     #[test]
     fn test_distance() {
+        let _ = env_logger::try_init();
+
         let point_cloud = PointCloud {
             points: vec![
                 Point { coords: vec![0.0, 0.0] },
@@ -122,6 +155,7 @@ mod tests {
         ];
         assert_eq!(dist_matrix, expected);
 
-        let _complex = point_cloud.vietoris_rips_complex(1.0); // TODO more
+        let complex = point_cloud.vietoris_rips_complex(1.0);
+        debug!("Simplicial complex is {:?}", complex); // TODO more
     }
 }

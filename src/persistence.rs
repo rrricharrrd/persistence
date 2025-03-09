@@ -14,8 +14,8 @@ struct Entry<'a> {
 /// Simplex (as defined via its vertices)
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Simplex {
-    vertices: Vec<usize>,
-    filtration_level: usize,
+    pub vertices: Vec<usize>,
+    pub filtration_level: usize,
 }
 
 impl Simplex {
