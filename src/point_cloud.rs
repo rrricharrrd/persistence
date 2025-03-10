@@ -78,7 +78,7 @@ impl PointCloud {
                     let d = [dist_matrix[i][j], dist_matrix[i][k], dist_matrix[j][k]]
                         .iter()
                         .map(|x| OrderedFloat(*x))
-                        .min()
+                        .max()
                         .unwrap();
                     if d <= threshold {
                         let simplex = Simplex { vertices: vec![i, j, k] };
@@ -103,7 +103,7 @@ impl PointCloud {
                             dist_matrix[k][l],
                         ].iter()
                             .map(|x| OrderedFloat(*x))
-                            .min()
+                            .max()
                             .unwrap();
                         if d <= threshold {
                             let simplex = Simplex { vertices: vec![i, j, k, l] };
@@ -160,5 +160,18 @@ mod tests {
             Simplex { vertices: vec![0, 1, 2] },
         ];
         assert_eq!(complex, expected);
+
+        let expected = HashMap::from(
+            [
+                (Simplex { vertices: vec![0] }, 0.0),
+                (Simplex { vertices: vec![1] }, 0.0),
+                (Simplex { vertices: vec![2] }, 0.0),
+                (Simplex { vertices: vec![0, 1] }, 1.0),
+                (Simplex { vertices: vec![0, 2] }, sqrt5),
+                (Simplex { vertices: vec![1, 2] }, 2.0),
+                (Simplex { vertices: vec![0, 1, 2] }, sqrt5),
+            ],
+        );
+        assert_eq!(filtration, expected);
     }
 }
