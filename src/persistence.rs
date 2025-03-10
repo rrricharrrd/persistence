@@ -6,16 +6,21 @@ use log::debug;
 #[derive(Clone, Debug)]
 struct Entry<'a> {
     simplex: &'a Simplex,
+    filtration_level: f64,
     is_marked: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PersistenceInterval {
+    birth: f64,
+    death: f64,
+}
 
 /// Simplex (as defined via its vertices)
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Simplex {
     pub vertices: Vec<usize>,
-    pub filtration_level: usize,
 }
 
 impl Simplex {
@@ -79,13 +84,15 @@ fn remove_pivot_rows(
 /// Compute persistence intervals for simplicial complex
 pub fn compute_intervals(
     simplices: &[Simplex],
+    simplices_map: &HashMap<Simplex, f64>,
     boundary_op: &[Vec<i32>],
-) -> Vec<HashSet<(usize, usize)>> {
+) -> Vec<Vec<PersistenceInterval>> {
     let mut table: Vec<Entry> = simplices
         .iter()
         .map(|s| {
             Entry {
                 simplex: s,
+                filtration_level: *simplices_map.get(s).unwrap(),
                 is_marked: false,
                 co_bounds: HashSet::new(),
             }
@@ -93,7 +100,7 @@ pub fn compute_intervals(
         .collect();
 
     let max_dim = simplices.iter().map(|s| s.dim()).max().unwrap();
-    let mut intervals: Vec<HashSet<(usize, usize)>> = vec![HashSet::new(); max_dim + 1];
+    let mut intervals: Vec<Vec<PersistenceInterval>> = vec![Vec::new(); max_dim + 1];
 
     for sx in 0..table.len() {
         let boundary = remove_pivot_rows(sx, boundary_op, &table);
@@ -105,10 +112,10 @@ pub fn compute_intervals(
             table[*b].co_bounds = boundary.clone();
 
             let dim = table[*b].simplex.dim();
-            intervals[dim].insert((
-                table[*b].simplex.filtration_level,
-                table[sx].simplex.filtration_level,
-            ));
+            intervals[dim].push(PersistenceInterval {
+                birth: table[*b].filtration_level,
+                death: table[sx].filtration_level,
+            });
         }
     }
 
@@ -118,7 +125,10 @@ pub fn compute_intervals(
         if entry.is_marked && entry.co_bounds.is_empty() {
             let dim = entry.simplex.dim();
             // Note: usize::MAX for infinity
-            intervals[dim].insert((entry.simplex.filtration_level, usize::MAX));
+            intervals[dim].push(PersistenceInterval {
+                birth: entry.filtration_level,
+                death: f64::INFINITY,
+            });
         }
     }
     intervals
@@ -128,37 +138,21 @@ pub fn compute_intervals(
 /// Compute boundary operator for given simplicial complex
 pub fn compute_boundary_op(simplices: &[Simplex]) -> Vec<Vec<i32>> {
     let n = simplices.len();
-    // TODO throughout using dummy filtration level, as not needed to define boundary matrix
     let ordering: HashMap<Simplex, usize> = simplices
         .iter()
         .enumerate()
-        .map(|(i, v)| {
-            (
-                Simplex {
-                    vertices: v.vertices.clone(),
-                    filtration_level: 0,
-                },
-                i,
-            )
-        })
+        .map(|(i, v)| (v.clone(), i))
         .collect();
 
     let mut boundary_op = vec![vec![0; n]; n];
     for s in simplices {
-        let ss = Simplex {
-            vertices: s.vertices.clone(),
-            filtration_level: 0,
-        }; // TODO
         for &v in &s.vertices {
             let mut ds_vertices = s.vertices.clone();
             ds_vertices.retain(|&x| x != v); // Remove vertex
-            let ds = Simplex {
-                vertices: ds_vertices,
-                filtration_level: 0,
-            };
+            let ds = Simplex { vertices: ds_vertices };
 
             if let Some(&row) = ordering.get(&ds) {
-                if let Some(&col) = ordering.get(&ss) {
+                if let Some(&col) = ordering.get(s) {
                     boundary_op[row][col] = 1;
                 }
             }
@@ -171,6 +165,8 @@ pub fn compute_boundary_op(simplices: &[Simplex]) -> Vec<Vec<i32>> {
 
 #[cfg(test)]
 mod tests {
+    use core::f64;
+
     use super::*;
 
     #[test]
@@ -179,63 +175,67 @@ mod tests {
 
         // Given
         let simplices = vec![
-            Simplex {
-                vertices: vec![0],
-                filtration_level: 0,
-            },
-            Simplex {
-                vertices: vec![1],
-                filtration_level: 0,
-            },
-            Simplex {
-                vertices: vec![2],
-                filtration_level: 1,
-            },
-            Simplex {
-                vertices: vec![3],
-                filtration_level: 1,
-            },
-            Simplex {
-                vertices: vec![0, 1],
-                filtration_level: 1,
-            },
-            Simplex {
-                vertices: vec![1, 2],
-                filtration_level: 1,
-            },
-            Simplex {
-                vertices: vec![2, 3],
-                filtration_level: 2,
-            },
-            Simplex {
-                vertices: vec![0, 3],
-                filtration_level: 2,
-            },
-            Simplex {
-                vertices: vec![0, 2],
-                filtration_level: 3,
-            },
-            Simplex {
-                vertices: vec![0, 1, 2],
-                filtration_level: 4,
-            },
-            Simplex {
-                vertices: vec![0, 2, 3],
-                filtration_level: 5,
-            },
+            Simplex { vertices: vec![0] },
+            Simplex { vertices: vec![1] },
+            Simplex { vertices: vec![2] },
+            Simplex { vertices: vec![3] },
+            Simplex { vertices: vec![0, 1] },
+            Simplex { vertices: vec![1, 2] },
+            Simplex { vertices: vec![2, 3] },
+            Simplex { vertices: vec![0, 3] },
+            Simplex { vertices: vec![0, 2] },
+            Simplex { vertices: vec![0, 1, 2] },
+            Simplex { vertices: vec![0, 2, 3] },
         ];
+        let levels = vec![0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 3.0, 4.0, 5.0];
+        assert_eq!(simplices.len(), levels.len());
+
+        let simplices_map: HashMap<Simplex, f64> = simplices
+            .clone()
+            .into_iter()
+            .zip(levels.into_iter())
+            .collect();
+        debug!("Simplices {:?}", simplices_map);
+
         let boundary_op: Vec<Vec<i32>> = compute_boundary_op(&simplices);
         debug!("Boundary {:?}", boundary_op);
 
         // When
-        let result = compute_intervals(&simplices, &boundary_op);
+        let result = compute_intervals(&simplices, &simplices_map, &boundary_op);
         debug!("Result {:?}", result);
 
         // Then
+        // TODO make ordering-agnostic
         let expected = vec![
-            HashSet::from([(0, 1), (1, 1), (1, 2), (0, usize::MAX)]),
-            HashSet::from([(2, 5), (3, 4)]),
-            HashSet::new(),
+            vec![
+                PersistenceInterval {
+                    birth: 0.0,
+                    death: 1.0,
+                },
+                PersistenceInterval {
+                    birth: 1.0,
+                    death: 1.0,
+                },
+                PersistenceInterval {
+                    birth: 1.0,
+                    death: 2.0,
+                },
+                PersistenceInterval {
+                    birth: 0.0,
+                    death: f64::INFINITY,
+                },
+            ],
+            vec![
+                PersistenceInterval {
+                    birth: 3.0,
+                    death: 4.0,
+                },
+                PersistenceInterval {
+                    birth: 2.0,
+                    death: 5.0,
+                },
+            ],
+            vec![],
         ];
         assert_eq!(result, expected)
     }
