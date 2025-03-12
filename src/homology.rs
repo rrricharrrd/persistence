@@ -3,7 +3,10 @@ use std::collections::HashMap;
 
 #[allow(dead_code)] // TODO
 trait Chain {
-    fn filtration_level(&self) -> OrderedFloat<f64>; // Filtration level
+    // fn filtration_level(&self) -> OrderedFloat<f64> {
+    //     // Default is no separate filtration levels
+    //     ordered_float::OrderedFloat(0.0)
+    // }
     fn dim(&self) -> usize; // Dimension of chain
 }
 
@@ -17,10 +20,6 @@ impl Chain for Simplex {
     fn dim(&self) -> usize {
         self.vertices.len() - 1
     }
-
-    fn filtration_level(&self) -> OrderedFloat<f64> {
-        ordered_float::OrderedFloat(0.0)
-    }
 }
 
 #[allow(dead_code)] // TODO
@@ -31,18 +30,26 @@ trait ChainComplex<T: Chain> {
     fn len(&self) -> usize {
         self.chains().len()
     }
+    fn filtration_level(&self, index: usize) -> OrderedFloat<f64> {
+        if index >= self.len() {
+            panic!("Invalid index");
+        }
+        OrderedFloat(0.0) // Default is no separate filtration levels
+    }
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)] // TODO
 struct SimplicialComplex {
-    pub simplices: Vec<Simplex>,
+    simplices: Vec<Simplex>,
+    levels: Vec<f64>,
     indexes: HashMap<Simplex, usize>,
 }
 
 impl SimplicialComplex {
     #[allow(dead_code)] // TODO
-    fn new(simplices: Vec<Simplex>) -> Self {
+    fn new(simplices: Vec<Simplex>, levels: Vec<f64>) -> Self {
+        // TODO check lengths match
         let indexes: HashMap<Simplex, usize> = simplices
             .iter()
             .enumerate()
@@ -50,6 +57,7 @@ impl SimplicialComplex {
             .collect();
         Self {
             simplices: simplices.clone(),
+            levels,
             indexes,
         }
     }
@@ -62,6 +70,10 @@ impl ChainComplex<Simplex> for SimplicialComplex {
 
     fn chains(&self) -> &Vec<Simplex> {
         &self.simplices
+    }
+
+    fn filtration_level(&self, index: usize) -> OrderedFloat<f64> {
+        OrderedFloat(self.levels[index])
     }
 
     fn boundary(&self, index: usize) -> Vec<usize> {
@@ -92,9 +104,9 @@ mod tests {
         let simplex0 = Simplex { vertices: vec![0] };
         let simplex1 = Simplex { vertices: vec![1] };
         let simplex01 = Simplex { vertices: vec![0, 1] };
-        let complex = SimplicialComplex::new(vec![simplex0, simplex1, simplex01.clone()]);
+        let levels = vec![0.0, 1.0, 1.0];
+        let complex = SimplicialComplex::new(vec![simplex0, simplex1, simplex01.clone()], levels);
         assert_eq!(simplex01.clone().dim(), 1);
-        assert_eq!(simplex01.filtration_level(), OrderedFloat(0.0));
         assert_eq!(complex.len(), 3);
         debug!("{:?}", complex);
 
