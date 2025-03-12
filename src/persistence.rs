@@ -11,6 +11,8 @@ struct Entry<'a> {
     co_bounds: HashSet<usize>, // Elements of pivot column
 }
 
+
+/// Persistence interval
 #[derive(Clone, Debug, PartialEq)]
 pub struct PersistenceInterval {
     birth: f64,
