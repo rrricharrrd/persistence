@@ -1,6 +1,8 @@
 use super::persistence::Simplex;
 use ordered_float::OrderedFloat;
 use std::collections::HashMap;
+use std::f64;
+use super::combinatorics::generate_subsets;
 
 
 /// Represents a point in d-dimensional space
@@ -45,73 +47,40 @@ impl PointCloud {
     }
 
     /// Construct a Vietoris-Rips complex up to a given distance threshold
-    pub fn vietoris_rips_complex(&self, threshold: f64) -> (Vec<Simplex>, HashMap<Simplex, f64>) {
+    pub fn vietoris_rips_complex(
+        &self,
+        max_dimension: usize,
+        threshold: f64,
+    ) -> (Vec<Simplex>, HashMap<Simplex, f64>) {
         let threshold = OrderedFloat(threshold);
         let mut simplices = Vec::new();
         let mut filtration = HashMap::new();
-        let n = self.points.len();
         let dist_matrix = self.pairwise_distances();
 
-        // Add 0-simplices (individual points)
-        for i in 0..n {
-            let simplex = Simplex { vertices: vec![i] };
-            simplices.push(simplex.clone());
-            filtration.insert(simplex, 0.0);
-        }
-
-        // Add 1-simplices (edges)
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..n {
-            for j in i + 1..n {
-                if OrderedFloat(dist_matrix[i][j]) <= threshold {
-                    let simplex = Simplex{vertices: vec![i,j] };
-                    simplices.push(simplex.clone());
-                    filtration.insert(simplex,  dist_matrix[i][j]);
-                }
+        let points: Vec<usize> = (0..self.points.len()).collect();
+        let subsets = generate_subsets(&points, max_dimension + 1);
+        for subset in subsets {
+            let d: OrderedFloat<f64>;
+            if subset.is_empty() {
+                d = OrderedFloat(f64::INFINITY) // TODO: Just make it not get added
+            } else if subset.len() == 1 {
+                d = OrderedFloat(0.0);
+            } else {
+                let pairs = generate_subsets(&subset, 2);
+                d = pairs
+                    .iter()
+                    .map(|p| if p.len() == 2 {
+                        OrderedFloat(dist_matrix[p[0]][p[1]])
+                    } else {
+                        OrderedFloat(-f64::INFINITY)
+                    })
+                    .max()
+                    .unwrap();
             }
-        }
-
-        // Add 2-simplices (triangles)
-        for i in 0..n {
-            for j in i + 1..n {
-                for k in j + 1..n {
-                    let d = [dist_matrix[i][j], dist_matrix[i][k], dist_matrix[j][k]]
-                        .iter()
-                        .map(|x| OrderedFloat(*x))
-                        .max()
-                        .unwrap();
-                    if d <= threshold {
-                        let simplex = Simplex { vertices: vec![i, j, k] };
-                        simplices.push(simplex.clone());
-                        filtration.insert(simplex, *d);
-                    }
-                }
-            }
-        }
-
-        // Add 3-simplices (tetrahedra)
-        for i in 0..n {
-            for j in i + 1..n {
-                for k in j + 1..n {
-                    for l in k + 1..n {
-                        let d = [
-                            dist_matrix[i][j],
-                            dist_matrix[i][k],
-                            dist_matrix[i][l],
-                            dist_matrix[j][k],
-                            dist_matrix[j][l],
-                            dist_matrix[k][l],
-                        ].iter()
-                            .map(|x| OrderedFloat(*x))
-                            .max()
-                            .unwrap();
-                        if d <= threshold {
-                            let simplex = Simplex { vertices: vec![i, j, k, l] };
-                            simplices.push(simplex.clone());
-                            filtration.insert(simplex, *d);
-                        }
-                    }
-                }
+            if d <= threshold {
+                let simplex = Simplex { vertices: subset };
+                simplices.push(simplex.clone());
+                filtration.insert(simplex, *d);
             }
         }
 
@@ -126,7 +95,7 @@ mod tests {
     use log::debug;
 
     #[test]
-    fn test_distance() {
+    fn test_triangle() {
         let _ = env_logger::try_init();
 
         let point_cloud = PointCloud {
@@ -146,10 +115,9 @@ mod tests {
         ];
         assert_eq!(dist_matrix, expected);
 
-        let (complex, filtration) = point_cloud.vietoris_rips_complex(10.0);
-        debug!("Simplicial complex is {:?}", complex); // TODO more
-        debug!("Filtered complex is {:?}", filtration); // TODO more
-        // TODO make ordering-agnostic
+        let (complex, filtration) = point_cloud.vietoris_rips_complex(2, 10.0);
+        debug!("Simplicial complex is {:?}", complex);
+        debug!("Filtered complex is {:?}", filtration);
         let expected = vec![
             Simplex { vertices: vec![0] },
             Simplex { vertices: vec![1] },
