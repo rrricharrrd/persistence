@@ -52,7 +52,6 @@ impl PointCloud {
         max_dimension: usize,
         threshold: f64,
     ) -> (Vec<Simplex>, HashMap<Simplex, f64>) {
-        let threshold = OrderedFloat(threshold);
         let mut simplices = Vec::new();
         let mut filtration = HashMap::new();
         let dist_matrix = self.pairwise_distances();
@@ -60,27 +59,24 @@ impl PointCloud {
         let points: Vec<usize> = (0..self.points.len()).collect();
         let subsets = generate_subsets(&points, max_dimension + 1);
         for subset in subsets {
-            let d: OrderedFloat<f64>;
+            let max_dist: OrderedFloat<f64>;
             if subset.is_empty() {
-                d = OrderedFloat(f64::INFINITY) // TODO: Just make it not get added
+                continue;
             } else if subset.len() == 1 {
-                d = OrderedFloat(0.0);
+                max_dist = OrderedFloat(0.0);
             } else {
                 let pairs = generate_subsets(&subset, 2);
-                d = pairs
+                max_dist = pairs
                     .iter()
-                    .map(|p| if p.len() == 2 {
-                        OrderedFloat(dist_matrix[p[0]][p[1]])
-                    } else {
-                        OrderedFloat(-f64::INFINITY)
-                    })
+                    .filter(|p| p.len() == 2)
+                    .map(|p| OrderedFloat(dist_matrix[p[0]][p[1]]))
                     .max()
                     .unwrap();
             }
-            if d <= threshold {
+            if max_dist <= OrderedFloat(threshold) {
                 let simplex = Simplex { vertices: subset };
                 simplices.push(simplex.clone());
-                filtration.insert(simplex, *d);
+                filtration.insert(simplex, *max_dist);
             }
         }
 
