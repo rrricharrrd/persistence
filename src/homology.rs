@@ -20,10 +20,6 @@ struct Entry<'a, T> {
 
 #[allow(dead_code)] // TODO
 pub trait Chain {
-    // fn filtration_level(&self) -> OrderedFloat<f64> {
-    //     // Default is no separate filtration levels
-    //     ordered_float::OrderedFloat(0.0)
-    // }
     fn dim(&self) -> usize; // Dimension of chain
 }
 
@@ -45,7 +41,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     #[allow(private_interfaces)] // TODO
     fn remove_pivot_rows(&self, chain_ix: usize, table: &[Entry<T>]) -> HashSet<usize> {
         // Get boundary indices of given simplex
-        let chain = &table[chain_ix].chain;
+        let chain = table[chain_ix].chain;
         let mut boundary: HashSet<usize> = self.boundary(chain_ix);
         debug!(
             "Removing pivot from {:?}, full-boundary={:?}",
@@ -122,7 +118,6 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             debug!("{:?}", entry);
             if entry.is_marked && entry.co_bounds.is_empty() {
                 let dim = entry.chain.dim();
-                // Note: usize::MAX for infinity
                 intervals[dim].push(PersistenceInterval {
                     birth: entry.filtration_level,
                     death: OrderedFloat(f64::INFINITY),
