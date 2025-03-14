@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use super::homology::{Chain, ChainComplex};
 
 
+/// Simplex defined via collection of vertices
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Simplex {
     pub vertices: Vec<usize>,
@@ -16,6 +17,7 @@ impl Chain for Simplex {
 
 
 
+/// Simplicial chain complex
 #[derive(Debug, Clone)]
 pub struct SimplicialComplex {
     pub simplices: Vec<Simplex>,
@@ -24,7 +26,6 @@ pub struct SimplicialComplex {
 }
 
 impl SimplicialComplex {
-    #[allow(dead_code)] // TODO
     pub fn new(simplices: Vec<Simplex>, levels: Vec<f64>) -> Self {
         // TODO check lengths match
         let indexes: HashMap<Simplex, usize> = simplices
