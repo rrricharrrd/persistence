@@ -39,6 +39,7 @@ impl UnionFind {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use log::debug;
 
     #[test]
     fn test_union_find() {
@@ -50,6 +51,6 @@ mod tests {
         uf.merge(2, 3);
         uf.merge(1, 2);
         assert_eq!(uf.subsets.clone(), vec![4, 3, 3, 3, 4]);
-        println!("UnionFind: {:?}", uf.subsets.clone());
+        debug!("UnionFind: {:?}", uf.subsets.clone());
     }
 }
