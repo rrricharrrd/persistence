@@ -3,6 +3,7 @@ pub mod simplicial_complex;
 pub mod homology;
 
 mod combinatorics;
+mod union_find;
 
 // Python packaging
 #[cfg(feature = "python")]
