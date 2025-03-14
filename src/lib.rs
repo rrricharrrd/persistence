@@ -1,4 +1,5 @@
 pub mod point_cloud;
+pub mod heatmap;
 pub mod simplicial_complex;
 pub mod homology;
 
