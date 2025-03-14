@@ -4,9 +4,8 @@ use super::homology::{Chain, ChainComplex};
 
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
-#[allow(dead_code)] // TODO
-struct Simplex {
-    vertices: Vec<usize>,
+pub struct Simplex {
+    pub vertices: Vec<usize>,
 }
 
 impl Chain for Simplex {
@@ -18,16 +17,15 @@ impl Chain for Simplex {
 
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // TODO
-struct SimplicialComplex {
-    simplices: Vec<Simplex>,
-    levels: Vec<f64>,
+pub struct SimplicialComplex {
+    pub simplices: Vec<Simplex>,
+    pub levels: Vec<f64>,
     indexes: HashMap<Simplex, usize>,
 }
 
 impl SimplicialComplex {
     #[allow(dead_code)] // TODO
-    fn new(simplices: Vec<Simplex>, levels: Vec<f64>) -> Self {
+    pub fn new(simplices: Vec<Simplex>, levels: Vec<f64>) -> Self {
         // TODO check lengths match
         let indexes: HashMap<Simplex, usize> = simplices
             .iter()

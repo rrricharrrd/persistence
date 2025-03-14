@@ -1,5 +1,4 @@
-pub mod persistence;
 pub mod point_cloud;
+pub mod simplicial_complex;
 mod combinatorics;
 mod homology;
-pub mod simplicial_complex;

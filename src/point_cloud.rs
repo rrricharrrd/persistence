@@ -1,8 +1,7 @@
-use super::persistence::Simplex;
 use ordered_float::OrderedFloat;
-use std::collections::HashMap;
 use std::f64;
 use super::combinatorics::generate_subsets;
+use super::simplicial_complex::{SimplicialComplex, Simplex};
 
 
 /// Represents a point in d-dimensional space
@@ -47,13 +46,9 @@ impl PointCloud {
     }
 
     /// Construct a Vietoris-Rips complex up to a given distance threshold
-    pub fn vietoris_rips_complex(
-        &self,
-        max_dimension: usize,
-        threshold: f64,
-    ) -> (Vec<Simplex>, HashMap<Simplex, f64>) {
+    pub fn vietoris_rips_complex(&self, max_dimension: usize, threshold: f64) -> SimplicialComplex {
         let mut simplices = Vec::new();
-        let mut filtration = HashMap::new();
+        let mut filtration = Vec::new();
         let dist_matrix = self.pairwise_distances();
 
         let points: Vec<usize> = (0..self.points.len()).collect();
@@ -76,11 +71,11 @@ impl PointCloud {
             if max_dist <= OrderedFloat(threshold) {
                 let simplex = Simplex { vertices: subset };
                 simplices.push(simplex.clone());
-                filtration.insert(simplex, *max_dist);
+                filtration.push(*max_dist);
             }
         }
 
-        (simplices, filtration)
+        SimplicialComplex::new(simplices, filtration)
     }
 }
 
@@ -111,9 +106,9 @@ mod tests {
         ];
         assert_eq!(dist_matrix, expected);
 
-        let (complex, filtration) = point_cloud.vietoris_rips_complex(2, 10.0);
-        debug!("Simplicial complex is {:?}", complex);
-        debug!("Filtered complex is {:?}", filtration);
+        let complex = point_cloud.vietoris_rips_complex(2, 10.0);
+        debug!("Simplicial complex of {:?}", complex.simplices);
+        debug!("Filtration {:?}", complex.levels);
         let expected = vec![
             Simplex { vertices: vec![0] },
             Simplex { vertices: vec![1] },
@@ -123,19 +118,9 @@ mod tests {
             Simplex { vertices: vec![1, 2] },
             Simplex { vertices: vec![0, 1, 2] },
         ];
-        assert_eq!(complex, expected);
+        assert_eq!(complex.simplices, expected);
 
-        let expected = HashMap::from(
-            [
-                (Simplex { vertices: vec![0] }, 0.0),
-                (Simplex { vertices: vec![1] }, 0.0),
-                (Simplex { vertices: vec![2] }, 0.0),
-                (Simplex { vertices: vec![0, 1] }, 1.0),
-                (Simplex { vertices: vec![0, 2] }, sqrt5),
-                (Simplex { vertices: vec![1, 2] }, 2.0),
-                (Simplex { vertices: vec![0, 1, 2] }, sqrt5),
-            ],
-        );
-        assert_eq!(filtration, expected);
+        let expected = vec![0.0, 0.0, 0.0, 1.0, sqrt5, 2.0, sqrt5];
+        assert_eq!(complex.levels, expected);
     }
 }
