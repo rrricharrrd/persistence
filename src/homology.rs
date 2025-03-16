@@ -1,3 +1,4 @@
+use ndarray::Array2;
 use ordered_float::OrderedFloat;
 use std::collections::HashSet;
 use log::debug;
@@ -28,14 +29,28 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     fn chain(&self, index: usize) -> &T;
     fn chains(&self) -> &Vec<T>;
     fn boundary(&self, index: usize) -> HashSet<usize>; // Note working over Z/2
+
     fn len(&self) -> usize {
         self.chains().len()
     }
+
     fn filtration_level(&self, index: usize) -> OrderedFloat<f64> {
         if index >= self.len() {
             panic!("Invalid index");
         }
         OrderedFloat(0.0) // Default is no separate filtration levels
+    }
+
+    fn boundary_matrix(&self) -> Array2<usize> {
+        // TODO this does not include any filtration information
+        let n = self.chains().len();
+        let mut matrix = Array2::<usize>::zeros((n, n));
+        for (ix, _) in self.chains().iter().enumerate() {
+            for jx in self.boundary(ix) {
+                matrix[[jx, ix]] = 1;
+            }
+        }
+        matrix
     }
 
     #[allow(private_interfaces)] // TODO

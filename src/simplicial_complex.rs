@@ -2,7 +2,6 @@ use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
 use super::homology::{Chain, ChainComplex};
 
-
 /// Simplex defined via collection of vertices
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Simplex {
@@ -14,8 +13,6 @@ impl Chain for Simplex {
         self.vertices.len() - 1
     }
 }
-
-
 
 /// Simplicial chain complex
 #[derive(Debug, Clone)]
@@ -71,7 +68,6 @@ impl ChainComplex<Simplex> for SimplicialComplex {
 }
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,6 +91,7 @@ mod tests {
             let boundary = complex.boundary(i);
             debug!("d.{:?} is {:?}", complex.chain(i), boundary);
         }
+        debug!("Boundary: {:?}", complex.boundary_matrix());
     }
 
     #[test]
