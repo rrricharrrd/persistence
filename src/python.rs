@@ -10,3 +10,9 @@ pub fn pairwise_distances_py(py: Python, points: PyReadonlyArray2<f64>) -> Py<Py
     let distance_matrix = point_cloud.pairwise_distances();
     distance_matrix.to_pyarray_bound(py).into()
 }
+
+#[pymodule]
+pub fn persistence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(pairwise_distances_py, m)?)?;
+    Ok(())
+}
