@@ -8,7 +8,7 @@ pub struct UnionFind {
 
 impl UnionFind {
     #[allow(dead_code)] // TODO
-    fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         let subsets = (0..size).collect();
         Self { size, subsets }
     }
