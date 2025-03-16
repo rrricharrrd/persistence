@@ -2,6 +2,7 @@ use ordered_float::OrderedFloat;
 use std::f64;
 use super::combinatorics::generate_subsets;
 use super::simplicial_complex::{SimplicialComplex, Simplex};
+use ndarray::{Array2, ArrayView1};
 
 
 /// Represents a point in d-dimensional space
@@ -12,10 +13,10 @@ pub struct Point {
 
 
 /// Compute Euclidean distance between two points
-fn euclidean_distance(p1: &Point, p2: &Point) -> f64 {
-    p1.coords
+fn euclidean_distance(point1: ArrayView1<f64>, point2: ArrayView1<f64>) -> f64 {
+    point1
         .iter()
-        .zip(&p2.coords)
+        .zip(&point2)
         .map(|(a, b)| (a - b).powi(2))
         .sum::<f64>()
         .sqrt()
@@ -25,20 +26,30 @@ fn euclidean_distance(p1: &Point, p2: &Point) -> f64 {
 /// Represents a collection of points
 #[derive(Debug, Clone)]
 pub struct PointCloud {
-    pub points: Vec<Point>,
+    pub points: Array2<f64>,
 }
 
 impl PointCloud {
+    /// Number of points in cloud
+    pub fn n_points(&self) -> usize {
+        self.points.nrows()
+    }
+
+    /// Dimensionality of cloud
+    pub fn dim(&self) -> usize {
+        self.points.ncols()
+    }
+
     /// Compute pairwise Euclidean distances between points
-    pub fn pairwise_distances(&self) -> Vec<Vec<f64>> {
-        let n = self.points.len();
-        let mut dist_matrix = vec![vec![0.0; n]; n];
+    pub fn pairwise_distances(&self) -> Array2<f64> {
+        let n = self.n_points();
+        let mut dist_matrix = Array2::<f64>::zeros((n, n));
 
         for i in 0..n {
             for j in i + 1..n {
-                let dist = euclidean_distance(&self.points[i], &self.points[j]);
-                dist_matrix[i][j] = dist;
-                dist_matrix[j][i] = dist;
+                let dist = euclidean_distance(self.points.row(i), self.points.row(j));
+                dist_matrix[(i, j)] = dist;
+                dist_matrix[(j, i)] = dist;
             }
         }
 
@@ -51,7 +62,7 @@ impl PointCloud {
         let mut filtration = Vec::new();
         let dist_matrix = self.pairwise_distances();
 
-        let points: Vec<usize> = (0..self.points.len()).collect();
+        let points: Vec<usize> = (0..self.n_points()).collect();
         let subsets = generate_subsets(&points, max_dimension + 1);
         for subset in subsets {
             let max_dist: OrderedFloat<f64>;
@@ -64,7 +75,7 @@ impl PointCloud {
                 max_dist = pairs
                     .iter()
                     .filter(|p| p.len() == 2)
-                    .map(|p| OrderedFloat(dist_matrix[p[0]][p[1]]))
+                    .map(|p| OrderedFloat(dist_matrix[[p[0], p[1]]]))
                     .max()
                     .unwrap();
             }
@@ -84,25 +95,27 @@ impl PointCloud {
 mod tests {
     use super::*;
     use log::debug;
+    use ndarray::array;
 
     #[test]
     fn test_triangle() {
         let _ = env_logger::try_init();
 
         let point_cloud = PointCloud {
-            points: vec![
-                Point { coords: vec![0.0, 0.0] },
-                Point { coords: vec![1.0, 0.0] },
-                Point { coords: vec![1.0, 2.0] },
+            points: array![
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 2.0],
             ],
         };
 
         let dist_matrix = point_cloud.pairwise_distances();
         let sqrt5 = (5.0 as f64).sqrt();
-        let expected = vec![
-            vec![0.0, 1.0, sqrt5],
-            vec![1.0, 0.0, 2.0],
-            vec![sqrt5, 2.0, 0.0],
+        let expected =
+            array![
+            [0.0, 1.0, sqrt5],
+            [1.0, 0.0, 2.0],
+            [sqrt5, 2.0, 0.0],
         ];
         assert_eq!(dist_matrix, expected);
 
