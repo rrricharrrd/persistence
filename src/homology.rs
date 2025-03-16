@@ -19,12 +19,10 @@ struct TableEntry<'a, T> {
     co_bounds: HashSet<usize>, // Elements of pivot column
 }
 
-#[allow(dead_code)] // TODO
 pub trait Chain {
     fn dim(&self) -> usize; // Dimension of chain
 }
 
-#[allow(dead_code)] // TODO
 pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     fn chain(&self, index: usize) -> &T;
     fn chains(&self) -> &Vec<T>;
@@ -32,6 +30,10 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
     fn len(&self) -> usize {
         self.chains().len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     fn filtration_level(&self, index: usize) -> OrderedFloat<f64> {

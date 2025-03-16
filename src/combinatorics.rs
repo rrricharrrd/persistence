@@ -1,5 +1,3 @@
-use log::debug;
-
 fn generate_combinations<T: Clone + std::fmt::Debug>(
     v: &[T],
     size: usize,
@@ -11,12 +9,6 @@ fn generate_combinations<T: Clone + std::fmt::Debug>(
         result.push(current.clone());
         return;
     }
-    debug!(
-        "Generating combinations of size {:?}, start {:?}, current {:?}",
-        size,
-        start,
-        current
-    );
 
     for i in start..v.len() {
         current.push(v[i].clone());
@@ -42,6 +34,7 @@ pub fn generate_subsets<T: Clone + std::fmt::Debug>(v: &[T], n: usize) -> Vec<Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+    use log::debug;
 
     #[test]
     fn test_generate_subsets() {
