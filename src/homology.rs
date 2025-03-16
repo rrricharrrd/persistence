@@ -9,9 +9,9 @@ pub struct PersistenceInterval {
     pub death: OrderedFloat<f64>,
 }
 
-// Define a struct for a simplex entry
+// Define a struct for a simplex entry, used to help track persistence
 #[derive(Clone, Debug)]
-struct Entry<'a, T> {
+struct TableEntry<'a, T> {
     chain: &'a T,
     filtration_level: OrderedFloat<f64>,
     is_marked: bool, // Is cycle to be retained in next dimension
@@ -39,7 +39,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     }
 
     #[allow(private_interfaces)] // TODO
-    fn remove_pivot_rows(&self, chain_ix: usize, table: &[Entry<T>]) -> HashSet<usize> {
+    fn remove_pivot_rows(&self, chain_ix: usize, table: &[TableEntry<T>]) -> HashSet<usize> {
         // Get boundary indices of given simplex
         let chain = table[chain_ix].chain;
         let mut boundary: HashSet<usize> = self.boundary(chain_ix);
@@ -80,11 +80,11 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
     /// Compute persistence intervals for simplicial complex
     fn compute_intervals(&self) -> Vec<Vec<PersistenceInterval>> {
-        let mut table: Vec<Entry<T>> = self.chains()
+        let mut table: Vec<TableEntry<T>> = self.chains()
             .iter()
             .enumerate()
             .map(|(i, s)| {
-                Entry {
+                TableEntry {
                     chain: s,
                     filtration_level: self.filtration_level(i),
                     is_marked: false,
