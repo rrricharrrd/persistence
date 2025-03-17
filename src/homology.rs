@@ -10,13 +10,22 @@ pub struct PersistenceInterval {
     pub death: OrderedFloat<f64>,
 }
 
-// Define a struct for a simplex entry, used to help track persistence
+// Define a struct for a complex entry, used to help track persistence
 #[derive(Clone, Debug)]
-struct TableEntry<'a, T> {
-    chain: &'a T,
-    filtration_level: OrderedFloat<f64>,
-    is_marked: bool, // Is cycle to be retained in next dimension
+struct TableEntry {
+    // chain_extra: Vec<usize>,  // TODO Chains collected with basis element during reduction
+    represents_cycle: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
+}
+
+impl TableEntry {
+    fn new() -> Self {
+        Self {
+            // chain_extra: vec![],
+            represents_cycle: false,
+            co_bounds: HashSet::new(),
+        }
+    }
 }
 
 pub trait Chain {
@@ -56,9 +65,9 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     }
 
     #[allow(private_interfaces)] // TODO
-    fn remove_pivot_rows(&self, chain_ix: usize, table: &[TableEntry<T>]) -> HashSet<usize> {
+    fn remove_pivot_rows(&self, chain_ix: usize, table: &[TableEntry]) -> HashSet<usize> {
         // Get boundary indices of given simplex
-        let chain = table[chain_ix].chain;
+        let chain = self.chain(chain_ix);
         let mut boundary: HashSet<usize> = self.boundary(chain_ix);
         debug!(
             "Removing pivot from {:?}, full-boundary={:?}",
@@ -67,7 +76,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
         );
 
         // Remove any boundary chains that don't generate the cycles in that dimension
-        boundary.retain(|&bx| table[bx].is_marked);
+        boundary.retain(|&bx| table[bx].represents_cycle);
 
         // Simulate conversion to echelon form
         while let Some(b) = boundary.iter().max() {
@@ -97,46 +106,35 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
     /// Compute persistence intervals for simplicial complex
     fn compute_intervals(&self) -> Vec<Vec<PersistenceInterval>> {
-        let mut table: Vec<TableEntry<T>> = self.chains()
-            .iter()
-            .enumerate()
-            .map(|(i, s)| {
-                TableEntry {
-                    chain: s,
-                    filtration_level: self.filtration_level(i),
-                    is_marked: false,
-                    co_bounds: HashSet::new(),
-                }
-            })
-            .collect();
+        let mut table: Vec<TableEntry> = vec![TableEntry::new(); self.len()];
 
         let max_dim = self.chains().iter().map(|s| s.dim()).max().unwrap();
         let mut intervals: Vec<Vec<PersistenceInterval>> = vec![Vec::new(); max_dim + 1];
 
-        for sx in 0..table.len() {
-            let boundary = self.remove_pivot_rows(sx, &table);
+        for chain_ix in 0..table.len() {
+            let boundary = self.remove_pivot_rows(chain_ix, &table);
 
             if boundary.is_empty() {
-                table[sx].is_marked = true;
-            } else if let Some(b) = boundary.iter().max() {
+                table[chain_ix].represents_cycle = true;
+            } else if let Some(&b) = boundary.iter().max() {
                 debug!("Storing {:?} in {:?}", &boundary, b);
-                table[*b].co_bounds = boundary.clone();
+                table[b].co_bounds = boundary.clone();
 
-                let dim = table[*b].chain.dim();
+                let dim = self.chain(b).dim();
                 intervals[dim].push(PersistenceInterval {
-                    birth: table[*b].filtration_level,
-                    death: table[sx].filtration_level,
+                    birth: self.filtration_level(b),
+                    death: self.filtration_level(chain_ix),
                 });
             }
         }
 
         debug!("Table");
-        for entry in table {
+        for (ix, entry) in table.iter().enumerate() {
             debug!("{:?}", entry);
-            if entry.is_marked && entry.co_bounds.is_empty() {
-                let dim = entry.chain.dim();
+            if entry.represents_cycle && entry.co_bounds.is_empty() {
+                let dim = self.chain(ix).dim();
                 intervals[dim].push(PersistenceInterval {
-                    birth: entry.filtration_level,
+                    birth: self.filtration_level(ix),
                     death: OrderedFloat(f64::INFINITY),
                 });
             }
