@@ -105,7 +105,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
 
     /// Compute persistence intervals for simplicial complex
-    fn compute_intervals(&self) -> HashMap<usize, Vec<PersistenceInterval>> {
+    fn persistence_intervals(&self) -> HashMap<usize, Vec<PersistenceInterval>> {
         let mut table: Vec<TableEntry> = vec![TableEntry::new(); self.len()];
 
         let max_dim = self.chains().iter().map(|s| s.dim()).max().unwrap();

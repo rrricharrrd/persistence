@@ -118,7 +118,7 @@ mod tests {
         let complex = SimplicialComplex::new(simplices, levels);
 
         // When
-        let result = complex.compute_intervals();
+        let result = complex.persistence_intervals();
         debug!("Result {:?}", result);
 
         // Then

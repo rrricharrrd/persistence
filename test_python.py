@@ -9,5 +9,8 @@ points = np.array([
     [2.0, 3.0, 4.0]
 ])
 
-distances = persistence.pairwise_distances_py(points)
+distances = persistence.pairwise_distances(points)
 print(distances)
+
+intervals = persistence.persistence_intervals(points, 2, 10.0)
+print(intervals)
