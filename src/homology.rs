@@ -1,6 +1,6 @@
 use ndarray::Array2;
 use ordered_float::OrderedFloat;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use log::debug;
 
 /// Persistence interval
@@ -105,11 +105,11 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
 
     /// Compute persistence intervals for simplicial complex
-    fn compute_intervals(&self) -> Vec<Vec<PersistenceInterval>> {
+    fn compute_intervals(&self) -> HashMap<usize, Vec<PersistenceInterval>> {
         let mut table: Vec<TableEntry> = vec![TableEntry::new(); self.len()];
 
         let max_dim = self.chains().iter().map(|s| s.dim()).max().unwrap();
-        let mut intervals: Vec<Vec<PersistenceInterval>> = vec![Vec::new(); max_dim + 1];
+        let mut intervals: HashMap<usize, Vec<PersistenceInterval>> = (0..max_dim + 1).map(|i| (i, Vec::new())).collect();
 
         for chain_ix in 0..table.len() {
             let boundary = self.remove_pivot_rows(chain_ix, &table);
@@ -121,7 +121,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 table[b].co_bounds = boundary.clone();
 
                 let dim = self.chain(b).dim();
-                intervals[dim].push(PersistenceInterval {
+                intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(b).into_inner(),
                     death: self.filtration_level(chain_ix).into_inner(),
                 });
@@ -133,7 +133,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             debug!("{:?}", entry);
             if entry.represents_cycle && entry.co_bounds.is_empty() {
                 let dim = self.chain(ix).dim();
-                intervals[dim].push(PersistenceInterval {
+                intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(ix).into_inner(),
                     death: f64::INFINITY,
                 });
