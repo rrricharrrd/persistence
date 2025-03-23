@@ -6,8 +6,8 @@ use log::debug;
 /// Persistence interval
 #[derive(Clone, Debug, PartialEq)]
 pub struct PersistenceInterval {
-    pub birth: OrderedFloat<f64>,
-    pub death: OrderedFloat<f64>,
+    pub birth: f64,
+    pub death: f64,
 }
 
 // Define a struct for a complex entry, used to help track persistence
@@ -122,8 +122,8 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
 
                 let dim = self.chain(b).dim();
                 intervals[dim].push(PersistenceInterval {
-                    birth: self.filtration_level(b),
-                    death: self.filtration_level(chain_ix),
+                    birth: self.filtration_level(b).into_inner(),
+                    death: self.filtration_level(chain_ix).into_inner(),
                 });
             }
         }
@@ -134,8 +134,8 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             if entry.represents_cycle && entry.co_bounds.is_empty() {
                 let dim = self.chain(ix).dim();
                 intervals[dim].push(PersistenceInterval {
-                    birth: self.filtration_level(ix),
-                    death: OrderedFloat(f64::INFINITY),
+                    birth: self.filtration_level(ix).into_inner(),
+                    death: f64::INFINITY,
                 });
             }
         }

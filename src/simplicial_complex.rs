@@ -126,30 +126,30 @@ mod tests {
         let expected = vec![
             vec![
                 PersistenceInterval {
-                    birth: OrderedFloat(0.0),
-                    death: OrderedFloat(1.0),
+                    birth: 0.0,
+                    death: 1.0,
                 },
                 PersistenceInterval {
-                    birth: OrderedFloat(1.0),
-                    death: OrderedFloat(1.0),
+                    birth: 1.0,
+                    death: 1.0,
                 },
                 PersistenceInterval {
-                    birth: OrderedFloat(1.0),
-                    death: OrderedFloat(2.0),
+                    birth: 1.0,
+                    death: 2.0,
                 },
                 PersistenceInterval {
-                    birth: OrderedFloat(0.0),
-                    death: OrderedFloat(f64::INFINITY),
+                    birth: 0.0,
+                    death: f64::INFINITY,
                 },
             ],
             vec![
                 PersistenceInterval {
-                    birth: OrderedFloat(3.0),
-                    death: OrderedFloat(4.0),
+                    birth: 3.0,
+                    death: 4.0,
                 },
                 PersistenceInterval {
-                    birth: OrderedFloat(2.0),
-                    death: OrderedFloat(5.0),
+                    birth: 2.0,
+                    death: 5.0,
                 },
             ],
             vec![],
