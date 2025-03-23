@@ -5,5 +5,7 @@ pub mod homology;
 mod combinatorics;
 
 // Python packaging
-pub mod python;
-pub use python::persistence;
+#[cfg(feature = "python")]
+pub mod pylib;
+#[cfg(feature = "python")]
+pub use pylib::persistence;

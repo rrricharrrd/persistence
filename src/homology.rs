@@ -109,7 +109,8 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
         let mut table: Vec<TableEntry> = vec![TableEntry::new(); self.len()];
 
         let max_dim = self.chains().iter().map(|s| s.dim()).max().unwrap();
-        let mut intervals: HashMap<usize, Vec<PersistenceInterval>> = (0..max_dim + 1).map(|i| (i, Vec::new())).collect();
+        let mut intervals: HashMap<usize, Vec<PersistenceInterval>> =
+            (0..max_dim + 1).map(|i| (i, Vec::new())).collect();
 
         for chain_ix in 0..table.len() {
             let boundary = self.remove_pivot_rows(chain_ix, &table);

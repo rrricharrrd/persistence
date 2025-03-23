@@ -123,37 +123,45 @@ mod tests {
 
         // Then
         // TODO make ordering-agnostic
-        let expected: HashMap<usize, Vec<PersistenceInterval>> = HashMap::from([
-            (0, vec![
-                PersistenceInterval {
-                    birth: 0.0,
-                    death: 1.0,
-                },
-                PersistenceInterval {
-                    birth: 1.0,
-                    death: 1.0,
-                },
-                PersistenceInterval {
-                    birth: 1.0,
-                    death: 2.0,
-                },
-                PersistenceInterval {
-                    birth: 0.0,
-                    death: f64::INFINITY,
-                },
-            ]),
-            (1, vec![
-                PersistenceInterval {
-                    birth: 3.0,
-                    death: 4.0,
-                },
-                PersistenceInterval {
-                    birth: 2.0,
-                    death: 5.0,
-                },
-            ]),
-            (2, vec![]),
-        ]);
+        let expected: HashMap<usize, Vec<PersistenceInterval>> = HashMap::from(
+            [
+                (
+                    0,
+                    vec![
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: 1.0,
+                        },
+                        PersistenceInterval {
+                            birth: 1.0,
+                            death: 1.0,
+                        },
+                        PersistenceInterval {
+                            birth: 1.0,
+                            death: 2.0,
+                        },
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: f64::INFINITY,
+                        },
+                    ],
+                ),
+                (
+                    1,
+                    vec![
+                        PersistenceInterval {
+                            birth: 3.0,
+                            death: 4.0,
+                        },
+                        PersistenceInterval {
+                            birth: 2.0,
+                            death: 5.0,
+                        },
+                    ],
+                ),
+                (2, vec![]),
+            ],
+        );
         assert_eq!(result, expected)
     }
 }
