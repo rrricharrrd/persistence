@@ -94,8 +94,12 @@ impl PointCloud {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+    use std::f64::consts::SQRT_2;
     use log::debug;
     use ndarray::array;
+    use super::super::homology::PersistenceInterval;
+    use super::super::homology::ChainComplex;
 
     #[test]
     fn test_triangle() {
@@ -127,13 +131,89 @@ mod tests {
             Simplex { vertices: vec![1] },
             Simplex { vertices: vec![2] },
             Simplex { vertices: vec![0, 1] },
-            Simplex { vertices: vec![0, 2] },
             Simplex { vertices: vec![1, 2] },
+            Simplex { vertices: vec![0, 2] },
             Simplex { vertices: vec![0, 1, 2] },
         ];
         assert_eq!(complex.simplices, expected);
 
-        let expected = vec![0.0, 0.0, 0.0, 1.0, sqrt5, 2.0, sqrt5];
+        let expected = vec![0.0, 0.0, 0.0, 1.0, 2.0, sqrt5, sqrt5];
         assert_eq!(complex.levels, expected);
+    }
+
+    #[test]
+    fn test_square() {
+        let _ = env_logger::try_init();
+
+        // Given
+        let point_cloud = PointCloud {
+            points: array![
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 1.0],
+                [0.0, 1.0],
+            ],
+        };
+
+        // When
+        let complex = point_cloud.vietoris_rips_complex(2, 10.0);
+        debug!("Simplicial complex {:?}", complex);
+        let intervals = complex.persistence_intervals();
+        debug!("Persistence intervals {:?}", intervals);
+
+        // Then
+        // TODO This is not correct!!!
+        let expected: HashMap<usize, Vec<PersistenceInterval>> = HashMap::from(
+            [
+                (
+                    0,
+                    vec![
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: 1.0,
+                        },
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: 1.0,
+                        },
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: 1.0,
+                        },
+                        PersistenceInterval {
+                            birth: 0.0,
+                            death: f64::INFINITY,
+                        },
+                    ],
+                ),
+                (
+                    1,
+                    vec![
+                        PersistenceInterval {
+                            birth: SQRT_2,
+                            death: SQRT_2,
+                        },
+                        PersistenceInterval {
+                            birth: SQRT_2,
+                            death: SQRT_2,
+                        },
+                        PersistenceInterval {
+                            birth: 1.0,
+                            death: SQRT_2,
+                        },
+                    ],
+                ),
+                (
+                    2,
+                    vec![
+                        PersistenceInterval {
+                            birth: SQRT_2,
+                            death: f64::INFINITY,
+                        },
+                    ],
+                ),
+            ],
+        );
+        assert_eq!(intervals, expected)
     }
 }

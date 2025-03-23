@@ -95,14 +95,9 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             }
         }
 
-        debug!(
-            "Removing pivot from {:?}: reduced-boundary={:?}",
-            chain,
-            boundary
-        );
+        debug!("After removing pivot: boundary={:?}", boundary);
         boundary
     }
-
 
     /// Compute persistence intervals for simplicial complex
     fn persistence_intervals(&self) -> HashMap<usize, Vec<PersistenceInterval>> {

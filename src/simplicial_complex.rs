@@ -25,14 +25,21 @@ pub struct SimplicialComplex {
 impl SimplicialComplex {
     pub fn new(simplices: Vec<Simplex>, levels: Vec<f64>) -> Self {
         // TODO check lengths match
-        let indexes: HashMap<Simplex, usize> = simplices
+
+        // Order simplices by filtration level
+        let mut paired: Vec<_> = simplices.into_iter().zip(levels).collect();
+        paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        let (sorted_simplices, sorted_levels): (Vec<_>, Vec<_>) = paired.into_iter().unzip();
+
+        // Construct mapping to be able to access "ith simplex"
+        let indexes: HashMap<Simplex, usize> = sorted_simplices
             .iter()
             .enumerate()
             .map(|(i, s)| (s.clone(), i))
             .collect();
         Self {
-            simplices: simplices.clone(),
-            levels,
+            simplices: sorted_simplices,
+            levels: sorted_levels,
             indexes,
         }
     }
@@ -95,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn test_persistence_intervals() {
+    fn test_persistence_intervals_paper_example() {
         let _ = env_logger::try_init();
 
         // Given
