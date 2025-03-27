@@ -13,17 +13,19 @@ pub struct PersistenceInterval {
 // Define a struct for a complex entry, used to help track persistence
 #[derive(Clone, Debug)]
 struct TableEntry {
-    // chain_extra: Vec<usize>,  // TODO Chains collected with basis element during reduction
     represents_cycle: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
+    boundary: Vec<usize>, // TODO Represents (part of) what bounds this chain
+    chain_extra: Vec<usize>, // TODO Chains collected with basis element during reduction
 }
 
 impl TableEntry {
     fn new() -> Self {
         Self {
-            // chain_extra: vec![],
             represents_cycle: false,
             co_bounds: HashSet::new(),
+            boundary: Vec::new(),
+            chain_extra: Vec::new(),
         }
     }
 }
@@ -65,7 +67,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     }
 
     #[allow(private_interfaces)] // TODO
-    fn remove_pivot_rows(&self, chain_ix: usize, table: &[TableEntry]) -> HashSet<usize> {
+    fn remove_pivot_rows(&self, chain_ix: usize, table: &mut Vec<TableEntry>) -> HashSet<usize> {
         // Get boundary indices of given simplex
         let chain = self.chain(chain_ix);
         let mut boundary: HashSet<usize> = self.boundary(chain_ix);
@@ -79,18 +81,20 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
         boundary.retain(|&bx| table[bx].represents_cycle);
 
         // Simulate conversion to echelon form
-        while let Some(b) = boundary.iter().max() {
-            if table[*b].co_bounds.is_empty() {
+        while let Some(b) = boundary.clone().into_iter().max() {
+            if table[b].co_bounds.is_empty() {
                 // This row is unclaimed - use as pivot
                 break;
             } else {
-                for cb in &table[*b].co_bounds {
+                for cb in table[b].co_bounds.clone() {
                     // Simulate subtracting pivot column (working over Z/2)
-                    if boundary.contains(cb) {
-                        boundary.remove(cb);
+                    if boundary.contains(&cb) {
+                        boundary.remove(&cb);
                     } else {
-                        boundary.insert(*cb);
+                        boundary.insert(cb);
                     }
+                    let extra = table[b].boundary.clone();
+                    table[chain_ix].chain_extra.extend(extra);
                 }
             }
         }
@@ -108,13 +112,14 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             (0..max_dim + 1).map(|i| (i, Vec::new())).collect();
 
         for chain_ix in 0..table.len() {
-            let boundary = self.remove_pivot_rows(chain_ix, &table);
+            let boundary = self.remove_pivot_rows(chain_ix, &mut table);
 
             if boundary.is_empty() {
                 table[chain_ix].represents_cycle = true;
             } else if let Some(&b) = boundary.iter().max() {
                 debug!("Storing {:?} in {:?}", &boundary, b);
                 table[b].co_bounds = boundary.clone();
+                table[b].boundary.push(chain_ix);
 
                 let dim = self.chain(b).dim();
                 intervals.entry(dim).or_default().push(PersistenceInterval {
