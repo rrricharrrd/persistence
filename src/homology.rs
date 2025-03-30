@@ -3,6 +3,19 @@ use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
 use log::debug;
 
+
+fn xor(a: &mut HashSet<usize>, b: &HashSet<usize>) {
+    // TODO make generic
+    // Simulates column operation (working over Z/2)
+    for y in b {
+        if a.contains(y) {
+            a.remove(y);
+        } else {
+            a.insert(*y);
+        }
+    }
+}
+
 /// Persistence interval
 #[derive(Clone, Debug, PartialEq)]
 pub struct PersistenceInterval {
@@ -86,16 +99,11 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 // This row is unclaimed - use as pivot
                 break;
             } else {
-                for cb in table[b].co_bounds.clone() {
-                    // Simulate subtracting pivot column (working over Z/2)
-                    if boundary.contains(&cb) {
-                        boundary.remove(&cb);
-                    } else {
-                        boundary.insert(cb);
-                    }
-                    let extra = table[b].boundary.clone();
-                    table[chain_ix].chain_extra.extend(extra);
-                }
+                debug!("Doing column operation - before: {:?}", boundary.clone());
+                xor(&mut boundary, &table[b].co_bounds);
+                let extra = table[b].boundary.clone();
+                table[chain_ix].chain_extra.extend(extra);
+                debug!("Doing column operation - after: {:?}", boundary.clone());
             }
         }
 
