@@ -26,19 +26,21 @@ pub struct PersistenceInterval {
 // Define a struct for a complex entry, used to help track persistence
 #[derive(Clone, Debug)]
 struct TableEntry {
+    parent: usize,
     represents_cycle: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
-    boundary: HashSet<usize>, // TODO Represents (part of) what bounds this chain
-    chain_extra: HashSet<usize>, // TODO Chains collected with basis element during reduction
+    bound: HashSet<usize>, // TODO Represents (part of) what bounds this chain
+    chain: HashSet<usize>, // TODO Chains collected with basis element during reduction
 }
 
 impl TableEntry {
-    fn new() -> Self {
+    fn new(index: usize) -> Self {
         Self {
+            parent: 0, // TODO
             represents_cycle: false,
             co_bounds: HashSet::new(),
-            boundary: HashSet::new(),
-            chain_extra: HashSet::new(),
+            bound: HashSet::new(),
+            chain: HashSet::from([index]),
         }
     }
 }
@@ -82,13 +84,12 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     #[allow(private_interfaces)] // TODO
     fn remove_pivot_rows(&self, chain_ix: usize, table: &mut Vec<TableEntry>) -> HashSet<usize> {
         // Get boundary indices of given simplex
-        let chain = self.chain(chain_ix);
         let mut boundary: HashSet<usize> = self.boundary(chain_ix);
-        debug!(
-            "Removing pivot from {:?}, full-boundary={:?}",
-            chain,
-            boundary
-        );
+        // debug!(
+        //     "Removing pivot from {:?}, full-boundary={:?}",
+        //     self.chain(chain_ix),
+        //     boundary
+        // );
 
         // Remove any boundary chains that don't generate the cycles in that dimension
         boundary.retain(|&bx| table[bx].represents_cycle);
@@ -99,21 +100,19 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 // This row is unclaimed - use as pivot
                 break;
             } else {
-                debug!("Doing column operation - before: {:?}", boundary.clone());
                 xor(&mut boundary, &table[b].co_bounds);
-                let extra = table[b].boundary.clone();
-                table[chain_ix].chain_extra.extend(extra);
-                debug!("Doing column operation - after: {:?}", boundary.clone());
+                let other = table[table[b].parent].chain.clone();
+                table[chain_ix].chain.extend(&other);
             }
         }
 
-        debug!("After removing pivot: boundary={:?}", boundary);
+        //debug!("After removing pivot: boundary={:?}", boundary);
         boundary
     }
 
     /// Compute persistence intervals for simplicial complex
     fn persistence_intervals(&self) -> HashMap<usize, Vec<PersistenceInterval>> {
-        let mut table: Vec<TableEntry> = vec![TableEntry::new(); self.len()];
+        let mut table: Vec<TableEntry> = (0..self.len()).map(TableEntry::new).collect();
 
         let max_dim = self.chains().iter().map(|s| s.dim()).max().unwrap();
         let mut intervals: HashMap<usize, Vec<PersistenceInterval>> =
@@ -125,11 +124,16 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             if boundary.is_empty() {
                 table[chain_ix].represents_cycle = true;
             } else if let Some(&b) = boundary.iter().max() {
-                debug!("Storing {:?} in {:?}", &boundary, b);
                 table[b].co_bounds = boundary.clone();
-                table[b].boundary.insert(chain_ix);
+                table[b].parent = chain_ix;
+                table[b].bound.insert(chain_ix);
 
                 let dim = self.chain(b).dim();
+                debug!(
+                    "Interval created by {:?}, killed by {:?}",
+                    &boundary,
+                    table[chain_ix].chain
+                );
                 intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(b).into_inner(),
                     death: self.filtration_level(chain_ix).into_inner(),
@@ -142,6 +146,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             debug!("{:?}", entry);
             if entry.represents_cycle && entry.co_bounds.is_empty() {
                 let dim = self.chain(ix).dim();
+                debug!("Interval created by {:?}, never killed", entry.co_bounds);
                 intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(ix).into_inner(),
                     death: f64::INFINITY,
