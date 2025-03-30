@@ -28,8 +28,8 @@ pub struct PersistenceInterval {
 struct TableEntry {
     represents_cycle: bool, // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
-    boundary: Vec<usize>, // TODO Represents (part of) what bounds this chain
-    chain_extra: Vec<usize>, // TODO Chains collected with basis element during reduction
+    boundary: HashSet<usize>, // TODO Represents (part of) what bounds this chain
+    chain_extra: HashSet<usize>, // TODO Chains collected with basis element during reduction
 }
 
 impl TableEntry {
@@ -37,8 +37,8 @@ impl TableEntry {
         Self {
             represents_cycle: false,
             co_bounds: HashSet::new(),
-            boundary: Vec::new(),
-            chain_extra: Vec::new(),
+            boundary: HashSet::new(),
+            chain_extra: HashSet::new(),
         }
     }
 }
@@ -127,7 +127,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
             } else if let Some(&b) = boundary.iter().max() {
                 debug!("Storing {:?} in {:?}", &boundary, b);
                 table[b].co_bounds = boundary.clone();
-                table[b].boundary.push(chain_ix);
+                table[b].boundary.insert(chain_ix);
 
                 let dim = self.chain(b).dim();
                 intervals.entry(dim).or_default().push(PersistenceInterval {
