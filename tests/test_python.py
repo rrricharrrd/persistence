@@ -1,7 +1,8 @@
 import numpy as np
 import persistence
+from scipy.spatial.distance import pdist, squareform
 
-# TODO actually test stuff
+
 def test_distances():
     points = np.array([
         [1.0, 2.0, 3.0],
@@ -11,9 +12,12 @@ def test_distances():
     ])
 
     distances = persistence.pairwise_distances(points)
+    distances_scipy = squareform(pdist(points))
     print(distances)
+    np.testing.assert_array_almost_equal(distances, distances_scipy)
 
 
+# TODO actually test stuff
 def test_square_persistence():
     square = np.array([
         [0.0, 0.0],
@@ -23,5 +27,5 @@ def test_square_persistence():
     ])
     distances = persistence.pairwise_distances(square)
     print(distances)
-    intervals = persistence.persistence_intervals(square, 1, 10.0)
+    intervals = persistence.persistence_intervals(square, 2, 10.0)
     print(intervals)
