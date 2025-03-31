@@ -1,31 +1,42 @@
 import numpy as np
-import persistence
+from persistence import PointCloud
 from scipy.spatial.distance import pdist, squareform
 
 
 def test_distances():
+    # Given
     points = np.array([
         [1.0, 2.0, 3.0],
         [4.0, 5.0, 6.0],
         [7.0, 8.0, 9.0],
         [2.0, 3.0, 4.0]
     ])
+    cloud = PointCloud(points)
 
-    distances = persistence.pairwise_distances(points)
-    distances_scipy = squareform(pdist(points))
+    # When
+    distances = cloud.distances(points)
     print(distances)
+
+    # Then
+    distances_scipy = squareform(pdist(points))
     np.testing.assert_array_almost_equal(distances, distances_scipy)
 
 
-# TODO actually test stuff
 def test_square_persistence():
+    # Given
     square = np.array([
         [0.0, 0.0],
         [1.0, 0.0],
         [1.0, 1.0],
         [0.0, 1.0],
     ])
-    distances = persistence.pairwise_distances(square)
+    cloud = PointCloud(square)
+
+    # When
+    distances = cloud.distances(square)
     print(distances)
-    intervals = persistence.persistence_intervals(square, 2, 10.0)
+    intervals = cloud.persistence_intervals(square, 2, 10.0)
     print(intervals)
+
+    # Then
+    # TODO actually test stuff
