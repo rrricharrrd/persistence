@@ -35,7 +35,17 @@ pub fn persistence_intervals(
     let py_intervals = PyDict::new_bound(py);
     for (dim, ints) in intervals {
         let py_list: Vec<_> = ints.iter()
-            .map(|s| PyTuple::new_bound(py, [s.birth, s.death]))
+            .map(|s| {
+                PyTuple::new_bound(
+                    py,
+                    [
+                        s.birth.into_py(py),
+                        s.birth_chain.clone().into_py(py),
+                        s.death.into_py(py),
+                        s.death_chain.clone().into_py(py),
+                    ],
+                )
+            })
             .collect();
         py_intervals.set_item(dim, py_list).unwrap();
     }
