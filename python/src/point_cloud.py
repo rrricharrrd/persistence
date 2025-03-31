@@ -1,5 +1,6 @@
 import numpy as np
-import persistence_rs
+
+import persistence
 
 
 class PointCloud:
@@ -7,7 +8,7 @@ class PointCloud:
         self.points = points
 
     def distances(self) -> np.ndarray:
-        return persistence_rs.pairwise_distances(self.points)
+        return persistence.pairwise_distances(self.points)
 
     def persistence_intervals(self, max_dim: int, max_dist: float) -> tuple:
-        return persistence_rs.persistence_intervals(self.points, max_dim, max_dim)
+        return persistence.persistence_intervals(self.points, max_dim, max_dim)

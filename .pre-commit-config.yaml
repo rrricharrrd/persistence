@@ -1,12 +1,6 @@
 repos:
-  # # 🦀 Rust checks (via cargo)
-  # - repo: https://github.com/doublify/pre-commit-rust
-  #   rev: v1.0  # Use latest version
-  #   hooks:
-  #     - id: cargo-check
-  #     - id: cargo-clippy
-  #     - id: cargo-fmt
 
+# General
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.0.1
   hooks:
@@ -16,16 +10,41 @@ repos:
   - id: trailing-whitespace
   - id: check-added-large-files
 
+# Rust
+- repo: local
+  hooks:
+  # - id: cargo-check
+  #   name: Cargo Check
+  #   entry: cargo check
+  #   language: system
+  #   types: [rust]
+
+  - id: cargo-clippy
+    name: Cargo Clippy
+    entry: cargo clippy -- -D warnings
+    pass_filenames: false
+    language: system
+    types: [rust]
+
+  - id: cargo-fmt
+    name: Cargo Fmt
+    entry: cargo fmt --all -- --force
+    language: system
+    types: [rust]
+
+# Python
 - repo: https://github.com/psf/black
   rev: 24.1.0
   hooks:
   - id: black
     args: [--config=./pyproject.toml]
+
 - repo: https://github.com/PyCQA/isort
   rev: 5.13.2
   hooks:
   - id: isort
     args: [--settings=./pyproject.toml]
+
 - repo: https://github.com/PyCQA/flake8
   rev: 7.0.0
   hooks:

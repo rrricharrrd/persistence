@@ -8,4 +8,4 @@ mod combinatorics;
 #[cfg(feature = "python")]
 pub mod pylib;
 #[cfg(feature = "python")]
-pub use pylib::persistence_rs;
+pub use pylib::persistence;

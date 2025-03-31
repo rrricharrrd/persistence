@@ -55,7 +55,7 @@ pub fn persistence_intervals(
 
 #[cfg(feature = "python")]
 #[pymodule]
-pub fn persistence_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn persistence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pairwise_distances, m)?)?;
     m.add_function(wrap_pyfunction!(persistence_intervals, m)?)?;
     Ok(())
