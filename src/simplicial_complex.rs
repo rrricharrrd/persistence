@@ -78,8 +78,15 @@ impl ChainComplex<Simplex> for SimplicialComplex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::homology::PersistenceInterval;
     use log::debug;
+
+    #[derive(Debug, PartialEq)]
+    struct Interval {
+        birth: f64,
+        birth_chain: HashSet<Vec<usize>>,
+        death: f64,
+        death_chain: HashSet<Vec<usize>>,
+    }
 
     #[test]
     fn test_simplicial_complex() {
@@ -125,50 +132,98 @@ mod tests {
         let complex = SimplicialComplex::new(simplices, levels);
 
         // When
-        let result = complex.persistence_intervals();
-        debug!("Result {:?}", result);
+        let all_intervals = complex.persistence_intervals();
+        debug!("Result {:?}", all_intervals);
 
         // Then
         // TODO make ordering-agnostic
-        let expected: HashMap<usize, Vec<PersistenceInterval>> = HashMap::from(
+        let expected: HashMap<usize, Vec<Interval>> = HashMap::from(
             [
                 (
                     0,
                     vec![
-                        PersistenceInterval {
+                        Interval {
                             birth: 0.0,
+                            birth_chain: HashSet::from([vec![1]]),
                             death: 1.0,
+                            death_chain: HashSet::from([vec![0, 1]]),
                         },
-                        PersistenceInterval {
+                        Interval {
                             birth: 1.0,
+                            birth_chain: HashSet::from([vec![2]]),
                             death: 1.0,
+                            death_chain: HashSet::from([vec![1, 2]]),
                         },
-                        PersistenceInterval {
+                        Interval {
                             birth: 1.0,
+                            birth_chain: HashSet::from([vec![3]]),
                             death: 2.0,
+                            death_chain: HashSet::from([vec![2, 3]]),
                         },
-                        PersistenceInterval {
+                        Interval {
                             birth: 0.0,
+                            birth_chain: HashSet::from([vec![0]]),
                             death: f64::INFINITY,
+                            death_chain: HashSet::new(),
                         },
                     ],
                 ),
                 (
                     1,
                     vec![
-                        PersistenceInterval {
+                        Interval {
                             birth: 3.0,
+                            birth_chain: HashSet::from([vec![0, 2], vec![0, 1], vec![1, 2]]),
                             death: 4.0,
+                            death_chain: HashSet::from([vec![0, 1, 2]]),
                         },
-                        PersistenceInterval {
+                        Interval {
                             birth: 2.0,
+                            birth_chain: HashSet::from(
+                                [vec![0, 3], vec![0, 1], vec![1, 2], vec![2, 3]]
+                            ),
                             death: 5.0,
+                            death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
                         },
                     ],
                 ),
                 (2, vec![]),
             ],
         );
-        assert_eq!(result, expected)
+        for (dim, intervals) in &all_intervals {
+            debug!("=== {:?} ===", dim);
+            let mut intervals_dim = Vec::new();
+            for interval in intervals {
+                let birth_chains: HashSet<Vec<usize>> = interval
+                    .birth_chain
+                    .iter()
+                    .map(|c| complex.chain(*c).vertices.clone())
+                    .collect();
+
+                let death_chains: HashSet<Vec<usize>>;
+                if let Some(death_chain) = &interval.death_chain {
+                    death_chains = death_chain
+                        .iter()
+                        .map(|c| complex.chain(*c).vertices.clone())
+                        .collect();
+                } else {
+                    death_chains = HashSet::new();
+                }
+                debug!(
+                    "Birth: {:?} (level {:?} --- Death: {:?} (level {:?})",
+                    birth_chains,
+                    interval.birth,
+                    death_chains,
+                    interval.death
+                );
+                intervals_dim.push(Interval {
+                    birth: interval.birth,
+                    birth_chain: birth_chains,
+                    death: interval.death,
+                    death_chain: death_chains,
+                });
+            }
+            assert_eq!(intervals_dim, expected[dim]);
+        }
     }
 }

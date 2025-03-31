@@ -20,7 +20,9 @@ fn xor(a: &mut HashSet<usize>, b: &HashSet<usize>) {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PersistenceInterval {
     pub birth: f64,
+    pub birth_chain: HashSet<usize>,
     pub death: f64,
+    pub death_chain: Option<HashSet<usize>>,
 }
 
 // Define a struct for a complex entry, used to help track persistence
@@ -136,7 +138,9 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 );
                 intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(b).into_inner(),
+                    birth_chain: table[b].chain.clone(), // TODO
                     death: self.filtration_level(chain_ix).into_inner(),
+                    death_chain: Some(table[chain_ix].chain.clone()), // TODO
                 });
             }
         }
@@ -149,7 +153,9 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 debug!("Interval created by {:?}, never killed", entry.co_bounds);
                 intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(ix).into_inner(),
+                    birth_chain: table[ix].chain.clone(), // TODO
                     death: f64::INFINITY,
+                    death_chain: None,
                 });
             }
         }
