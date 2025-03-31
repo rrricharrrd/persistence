@@ -1,16 +1,12 @@
 import numpy as np
-from persistence import PointCloud
 from scipy.spatial.distance import pdist, squareform
+
+from persistence import PointCloud
 
 
 def test_distances():
     # Given
-    points = np.array([
-        [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0],
-        [7.0, 8.0, 9.0],
-        [2.0, 3.0, 4.0]
-    ])
+    points = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [2.0, 3.0, 4.0]])
     cloud = PointCloud(points)
 
     # When
@@ -24,12 +20,14 @@ def test_distances():
 
 def test_square_persistence():
     # Given
-    square = np.array([
-        [0.0, 0.0],
-        [1.0, 0.0],
-        [1.0, 1.0],
-        [0.0, 1.0],
-    ])
+    square = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [0.0, 1.0],
+        ]
+    )
     cloud = PointCloud(square)
 
     # When

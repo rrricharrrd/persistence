@@ -5,7 +5,7 @@ import persistence_rs
 class PointCloud:
     def __init__(self, points: np.ndarray):
         self.points = points
-    
+
     def distances(self) -> np.ndarray:
         return persistence_rs.pairwise_distances(self.points)
 
