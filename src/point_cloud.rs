@@ -218,9 +218,7 @@ mod tests {
                         },
                         Interval {
                             birth: 1.0,
-                            birth_chain: HashSet::from(
-                                [vec![2, 3], vec![0, 1], vec![1, 2], vec![0, 3]]
-                            ),
+                            birth_chain: HashSet::from([vec![2, 3], vec![0, 1], vec![1, 2], vec![0, 3]]),
                             death: SQRT_2,
                             death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
                         },
@@ -231,14 +229,7 @@ mod tests {
                     vec![
                         Interval {
                             birth: SQRT_2,
-                            birth_chain: HashSet::from(
-                                [
-                                    vec![0, 2, 3],
-                                    vec![0, 1, 2],
-                                    vec![1, 2, 3],
-                                    vec![0, 1, 3],
-                                ]
-                            ),
+                            birth_chain: HashSet::from([vec![0, 2, 3], vec![0, 1, 2], vec![1, 2, 3], vec![0, 1, 3]]),
                             death: f64::INFINITY,
                             death_chain: HashSet::new(),
                         },

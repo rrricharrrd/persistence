@@ -179,9 +179,7 @@ mod tests {
                         },
                         Interval {
                             birth: 2.0,
-                            birth_chain: HashSet::from(
-                                [vec![0, 3], vec![0, 1], vec![1, 2], vec![2, 3]]
-                            ),
+                            birth_chain: HashSet::from([vec![0, 3], vec![0, 1], vec![1, 2], vec![2, 3]]),
                             death: 5.0,
                             death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
                         },
