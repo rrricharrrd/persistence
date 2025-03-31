@@ -1,7 +1,12 @@
+import sys
+from pathlib import Path
+
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
-from persistence import PointCloud
+# TODO fix python packaging
+sys.path.append(str(Path(__file__).parent.parent.parent / "python"))
+from src import PointCloud  # noqa
 
 
 def test_distances():
@@ -10,7 +15,7 @@ def test_distances():
     cloud = PointCloud(points)
 
     # When
-    distances = cloud.distances(points)
+    distances = cloud.distances()
     print(distances)
 
     # Then
@@ -31,9 +36,9 @@ def test_square_persistence():
     cloud = PointCloud(square)
 
     # When
-    distances = cloud.distances(square)
+    distances = cloud.distances()
     print(distances)
-    intervals = cloud.persistence_intervals(square, 2, 10.0)
+    intervals = cloud.persistence_intervals(max_dim=2, max_dist=10.0)
     print(intervals)
 
     # Then
