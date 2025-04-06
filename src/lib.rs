@@ -1,7 +1,7 @@
-pub mod homology;
-pub mod point_cloud;
 pub mod heatmap;
+pub mod homology;
 pub mod morse_complex;
+pub mod point_cloud;
 pub mod simplicial_complex;
 
 mod combinatorics;

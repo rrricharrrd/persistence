@@ -1,7 +1,6 @@
+use super::homology::{Chain, ChainComplex};
 use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
-use super::homology::{Chain, ChainComplex};
-
 
 /// Critical point from Morse function
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -16,8 +15,6 @@ impl Chain for MorseCriticalPoint {
         self.index
     }
 }
-
-
 
 /// Morse complex
 #[derive(Debug, Clone)]
@@ -58,8 +55,6 @@ impl ChainComplex<MorseCriticalPoint> for MorseComplex {
         HashSet::from([index]) // TODO Do this properly
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

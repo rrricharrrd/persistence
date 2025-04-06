@@ -1,8 +1,7 @@
 use super::morse_complex::MorseComplex;
 
 use super::union_find::UnionFind;
-use ndarray::{Array2, ArrayView1};
-
+use ndarray::Array2;
 
 #[derive(Debug, Clone)]
 pub struct Heatmap {
@@ -26,19 +25,21 @@ impl Heatmap {
     fn sorted_pixel_indices(&self) -> Vec<(f64, usize, usize)> {
         let mut pixels_flat: Vec<(f64, usize, usize)> = Vec::new();
 
-        for rx in (0..self.height()) {
-            for cx in (0..self.width()) {
+        for rx in 0..self.height() {
+            for cx in 0..self.width() {
                 let value = self.pixels[[rx, cx]];
                 pixels_flat.push((value, rx, cx));
             }
         }
 
         // Sort by descending value, then ascending i, then ascending j
-        pixels_flat.sort_by(|a, b|
-            b.0.partial_cmp(&a.0) // Descending value
-            .unwrap()
-            .then(a.1.cmp(&b.1)) // Ascending row index
-            .then(a.2.cmp(&b.2)) // Ascending column index
+        pixels_flat.sort_by(
+            |a, b| {
+                b.0.partial_cmp(&a.0) // Descending value
+                    .unwrap()
+                    .then(a.1.cmp(&b.1)) // Ascending row index
+                    .then(a.2.cmp(&b.2))
+            }, // Ascending column index
         );
 
         // Extract just (i, j) pairs
@@ -48,10 +49,10 @@ impl Heatmap {
 
     #[allow(dead_code)] // TODO
     fn find_maxima(&self) -> UnionFind {
-        let uf = UnionFind::new(pixels.len());
+        let mut uf = UnionFind::new(self.pixels.len());
 
         let pixels_flat = self.sorted_pixel_indices();
-        for (value, rx, cx) in pixels {
+        for (value, rx, cx) in pixels_flat {
             let index = flat_index(rx, cx, self.width());
 
             let value_up = if rx > 0 {
@@ -88,7 +89,12 @@ impl Heatmap {
             // TODO
             if !(is_max || is_min || is_saddle) {
                 // Find direction of greatest increase
-                let uphill = [value_up, value_down, value_left, value_right]; // arg
+                let uphill = [value_up, value_down, value_left, value_right]
+                    .iter()
+                    .enumerate()
+                    .max_by(|&(_, a), &(_, b)| a.partial_cmp(b).unwrap()) // Handle NaN cases safely
+                    .map(|(idx, _)| idx)
+                    .unwrap();
                 if uphill == 0 {
                     let index_up = flat_index(rx - 1, cx, self.width());
                     uf.merge(index_up, index);
@@ -110,9 +116,10 @@ impl Heatmap {
     }
 
     /// Create Morse complex
+    #[allow(dead_code)] // TODO
     fn morse_complex(&self) -> MorseComplex {
-        let uf = self.find_maxima();
-        MorseComplex::new(vec![])  // TODO
+        let _uf = self.find_maxima();
+        MorseComplex::new(vec![]) // TODO
     }
 }
 
@@ -120,12 +127,15 @@ impl Heatmap {
 mod tests {
     use super::*;
     use log::debug;
+    use ndarray::array;
 
     #[test]
     fn test_union_find() {
         let _ = env_logger::try_init();
 
-        let heatmap = Heatmap { pixels: vec![vec![0.2, 0.8, 0.5], vec![0.4, 0.1, 0.9]] };
+        let heatmap = Heatmap {
+            pixels: array![[0.2, 0.8, 0.5], [0.4, 0.1, 0.9]],
+        };
         assert_eq!(heatmap.height(), 2);
         assert_eq!(heatmap.width(), 3);
 

@@ -1,6 +1,7 @@
 /// Union-Find data structure
 #[derive(Debug, Clone)]
 pub struct UnionFind {
+    #[allow(dead_code)] // TODO
     size: usize,
     subsets: Vec<usize>,
 }
@@ -13,7 +14,7 @@ impl UnionFind {
     }
 
     #[allow(dead_code)] // TODO
-    fn len(self) -> usize {
+    fn len(&self) -> usize {
         self.subsets.len()
     }
 
@@ -37,7 +38,6 @@ impl UnionFind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log::debug;
 
     #[test]
     fn test_union_find() {
@@ -50,9 +50,8 @@ mod tests {
         uf.merge(1, 2);
         let expected = vec![4, 3, 3, 3, 4];
         assert_eq!(uf.subsets.clone(), expected);
-        for ix in (0..uf.len()) {
+        for ix in 0..uf.len() {
             assert_eq!(uf.find(ix), expected[ix]);
         }
-        debug!("UnionFind: {:?}", uf.subsets.clone());
     }
 }
