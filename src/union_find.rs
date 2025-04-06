@@ -1,7 +1,6 @@
 /// Union-Find data structure
 #[derive(Debug, Clone)]
 pub struct UnionFind {
-    #[allow(dead_code)] // TODO
     size: usize,
     subsets: Vec<usize>,
 }
@@ -27,8 +26,7 @@ impl UnionFind {
         y
     }
 
-    #[allow(dead_code)] // TODO
-    fn merge(&mut self, x: usize, y: usize) {
+    pub fn merge(&mut self, x: usize, y: usize) {
         // TODO path compression
         let x_root = self.find(x);
         let y_root = self.find(y);
@@ -50,7 +48,11 @@ mod tests {
         uf.merge(0, 4);
         uf.merge(2, 3);
         uf.merge(1, 2);
-        assert_eq!(uf.subsets.clone(), vec![4, 3, 3, 3, 4]);
+        let expected = vec![4, 3, 3, 3, 4];
+        assert_eq!(uf.subsets.clone(), expected);
+        for ix in (0..uf.len()) {
+            assert_eq!(uf.find(ix), expected[ix]);
+        }
         debug!("UnionFind: {:?}", uf.subsets.clone());
     }
 }
