@@ -1,16 +1,14 @@
+use super::combinatorics::generate_subsets;
+use super::simplicial_complex::{Simplex, SimplicialComplex};
+use ndarray::{Array2, ArrayView1};
 use ordered_float::OrderedFloat;
 use std::f64;
-use super::combinatorics::generate_subsets;
-use super::simplicial_complex::{SimplicialComplex, Simplex};
-use ndarray::{Array2, ArrayView1};
-
 
 /// Represents a point in d-dimensional space
 #[derive(Debug, Clone)]
 pub struct Point {
     pub coords: Vec<f64>,
 }
-
 
 /// Compute Euclidean distance between two points
 fn euclidean_distance(point1: ArrayView1<f64>, point2: ArrayView1<f64>) -> f64 {
@@ -21,7 +19,6 @@ fn euclidean_distance(point1: ArrayView1<f64>, point2: ArrayView1<f64>) -> f64 {
         .sum::<f64>()
         .sqrt()
 }
-
 
 /// Represents a collection of points
 #[derive(Debug, Clone)]
@@ -90,15 +87,14 @@ impl PointCloud {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::super::homology::ChainComplex;
     use super::*;
-    use std::collections::{HashMap, HashSet};
-    use std::f64::consts::SQRT_2;
     use log::debug;
     use ndarray::array;
-    use super::super::homology::ChainComplex;
+    use std::collections::{HashMap, HashSet};
+    use std::f64::consts::SQRT_2;
 
     #[derive(Debug, PartialEq)]
     struct Interval {
@@ -113,21 +109,12 @@ mod tests {
         let _ = env_logger::try_init();
 
         let point_cloud = PointCloud {
-            points: array![
-                [0.0, 0.0],
-                [1.0, 0.0],
-                [1.0, 2.0],
-            ],
+            points: array![[0.0, 0.0], [1.0, 0.0], [1.0, 2.0],],
         };
 
         let dist_matrix = point_cloud.pairwise_distances();
         let sqrt5 = (5.0 as f64).sqrt();
-        let expected =
-            array![
-            [0.0, 1.0, sqrt5],
-            [1.0, 0.0, 2.0],
-            [sqrt5, 2.0, 0.0],
-        ];
+        let expected = array![[0.0, 1.0, sqrt5], [1.0, 0.0, 2.0], [sqrt5, 2.0, 0.0],];
         assert_eq!(dist_matrix, expected);
 
         let complex = point_cloud.vietoris_rips_complex(2, 10.0);
@@ -140,7 +127,9 @@ mod tests {
             Simplex { vertices: vec![0, 1] },
             Simplex { vertices: vec![1, 2] },
             Simplex { vertices: vec![0, 2] },
-            Simplex { vertices: vec![0, 1, 2] },
+            Simplex {
+                vertices: vec![0, 1, 2],
+            },
         ];
         assert_eq!(complex.simplices, expected);
 
@@ -154,12 +143,7 @@ mod tests {
 
         // Given
         let point_cloud = PointCloud {
-            points: array![
-                [0.0, 0.0],
-                [1.0, 0.0],
-                [1.0, 1.0],
-                [0.0, 1.0],
-            ],
+            points: array![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0],],
         };
 
         // When
@@ -170,73 +154,69 @@ mod tests {
 
         // Then
         // TODO make ordering-agnostic
-        let expected: HashMap<usize, Vec<Interval>> = HashMap::from(
-            [
-                (
-                    0,
-                    vec![
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![1]]),
-                            death: 1.0,
-                            death_chain: HashSet::from([vec![0, 1]]),
-                        },
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![3]]),
-                            death: 1.0,
-                            death_chain: HashSet::from([vec![0, 3]]),
-                        },
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![2]]),
-                            death: 1.0,
-                            death_chain: HashSet::from([vec![1, 2]]),
-                        },
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![0]]),
-                            death: f64::INFINITY,
-                            death_chain: HashSet::new(),
-                        },
-                    ],
-                ),
-                (
-                    1,
-                    vec![
-                        Interval {
-                            birth: SQRT_2,
-                            birth_chain: HashSet::from([vec![0, 2], vec![0, 1], vec![1, 2]]),
-                            death: SQRT_2,
-                            death_chain: HashSet::from([vec![0, 1, 2]]),
-                        },
-                        Interval {
-                            birth: SQRT_2,
-                            birth_chain: HashSet::from([vec![0, 1], vec![1, 3], vec![0, 3]]),
-                            death: SQRT_2,
-                            death_chain: HashSet::from([vec![0, 1, 3]]),
-                        },
-                        Interval {
-                            birth: 1.0,
-                            birth_chain: HashSet::from([vec![2, 3], vec![0, 1], vec![1, 2], vec![0, 3]]),
-                            death: SQRT_2,
-                            death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
-                        },
-                    ],
-                ),
-                (
-                    2,
-                    vec![
-                        Interval {
-                            birth: SQRT_2,
-                            birth_chain: HashSet::from([vec![0, 2, 3], vec![0, 1, 2], vec![1, 2, 3], vec![0, 1, 3]]),
-                            death: f64::INFINITY,
-                            death_chain: HashSet::new(),
-                        },
-                    ],
-                ),
-            ],
-        );
+        let expected: HashMap<usize, Vec<Interval>> = HashMap::from([
+            (
+                0,
+                vec![
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![1]]),
+                        death: 1.0,
+                        death_chain: HashSet::from([vec![0, 1]]),
+                    },
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![3]]),
+                        death: 1.0,
+                        death_chain: HashSet::from([vec![0, 3]]),
+                    },
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![2]]),
+                        death: 1.0,
+                        death_chain: HashSet::from([vec![1, 2]]),
+                    },
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![0]]),
+                        death: f64::INFINITY,
+                        death_chain: HashSet::new(),
+                    },
+                ],
+            ),
+            (
+                1,
+                vec![
+                    Interval {
+                        birth: SQRT_2,
+                        birth_chain: HashSet::from([vec![0, 2], vec![0, 1], vec![1, 2]]),
+                        death: SQRT_2,
+                        death_chain: HashSet::from([vec![0, 1, 2]]),
+                    },
+                    Interval {
+                        birth: SQRT_2,
+                        birth_chain: HashSet::from([vec![0, 1], vec![1, 3], vec![0, 3]]),
+                        death: SQRT_2,
+                        death_chain: HashSet::from([vec![0, 1, 3]]),
+                    },
+                    Interval {
+                        birth: 1.0,
+                        birth_chain: HashSet::from([vec![2, 3], vec![0, 1], vec![1, 2], vec![0, 3]]),
+                        death: SQRT_2,
+                        death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
+                    },
+                ],
+            ),
+            (
+                2,
+                vec![Interval {
+                    birth: SQRT_2,
+                    birth_chain: HashSet::from([vec![0, 2, 3], vec![0, 1, 2], vec![1, 2, 3], vec![0, 1, 3]]),
+                    death: f64::INFINITY,
+                    death_chain: HashSet::new(),
+                }],
+            ),
+        ]);
         for (dim, intervals) in &all_intervals {
             debug!("=== {:?} ===", dim);
             let mut intervals_dim = Vec::new();
@@ -249,19 +229,13 @@ mod tests {
 
                 let death_chains: HashSet<Vec<usize>>;
                 if let Some(death_chain) = &interval.death_chain {
-                    death_chains = death_chain
-                        .iter()
-                        .map(|c| complex.chain(*c).vertices.clone())
-                        .collect();
+                    death_chains = death_chain.iter().map(|c| complex.chain(*c).vertices.clone()).collect();
                 } else {
                     death_chains = HashSet::new();
                 }
                 debug!(
                     "Birth: {:?} (level {:?} --- Death: {:?} (level {:?})",
-                    birth_chains,
-                    interval.birth,
-                    death_chains,
-                    interval.death
+                    birth_chains, interval.birth, death_chains, interval.death
                 );
                 intervals_dim.push(Interval {
                     birth: interval.birth,

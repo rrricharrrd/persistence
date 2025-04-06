@@ -1,8 +1,7 @@
+use log::debug;
 use ndarray::Array2;
 use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
-use log::debug;
-
 
 fn xor(a: &mut HashSet<usize>, b: &HashSet<usize>) {
     // TODO make generic
@@ -29,10 +28,10 @@ pub struct PersistenceInterval {
 #[derive(Clone, Debug)]
 struct TableEntry {
     parent: usize,
-    represents_cycle: bool, // Is cycle to be retained in next dimension
+    represents_cycle: bool,    // Is cycle to be retained in next dimension
     co_bounds: HashSet<usize>, // Elements of pivot column
-    bound: HashSet<usize>, // TODO Represents (part of) what bounds this chain
-    chain: HashSet<usize>, // TODO Chains collected with basis element during reduction
+    bound: HashSet<usize>,     // TODO Represents (part of) what bounds this chain
+    chain: HashSet<usize>,     // TODO Chains collected with basis element during reduction
 }
 
 impl TableEntry {
@@ -133,8 +132,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
                 let dim = self.chain(b).dim();
                 debug!(
                     "Interval created by {:?}, killed by {:?}",
-                    &boundary,
-                    table[chain_ix].chain
+                    &boundary, table[chain_ix].chain
                 );
                 intervals.entry(dim).or_default().push(PersistenceInterval {
                     birth: self.filtration_level(b).into_inner(),

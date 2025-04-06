@@ -1,6 +1,6 @@
+pub mod homology;
 pub mod point_cloud;
 pub mod simplicial_complex;
-pub mod homology;
 
 mod combinatorics;
 

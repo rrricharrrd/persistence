@@ -1,6 +1,6 @@
+use super::homology::{Chain, ChainComplex};
 use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
-use super::homology::{Chain, ChainComplex};
 
 /// Simplex defined via collection of vertices
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -74,7 +74,6 @@ impl ChainComplex<Simplex> for SimplicialComplex {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,8 +122,12 @@ mod tests {
             Simplex { vertices: vec![2, 3] },
             Simplex { vertices: vec![0, 3] },
             Simplex { vertices: vec![0, 2] },
-            Simplex { vertices: vec![0, 1, 2] },
-            Simplex { vertices: vec![0, 2, 3] },
+            Simplex {
+                vertices: vec![0, 1, 2],
+            },
+            Simplex {
+                vertices: vec![0, 2, 3],
+            },
         ];
         let levels = vec![0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 3.0, 4.0, 5.0];
         assert_eq!(simplices.len(), levels.len());
@@ -137,57 +140,55 @@ mod tests {
 
         // Then
         // TODO make ordering-agnostic
-        let expected: HashMap<usize, Vec<Interval>> = HashMap::from(
-            [
-                (
-                    0,
-                    vec![
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![1]]),
-                            death: 1.0,
-                            death_chain: HashSet::from([vec![0, 1]]),
-                        },
-                        Interval {
-                            birth: 1.0,
-                            birth_chain: HashSet::from([vec![2]]),
-                            death: 1.0,
-                            death_chain: HashSet::from([vec![1, 2]]),
-                        },
-                        Interval {
-                            birth: 1.0,
-                            birth_chain: HashSet::from([vec![3]]),
-                            death: 2.0,
-                            death_chain: HashSet::from([vec![2, 3]]),
-                        },
-                        Interval {
-                            birth: 0.0,
-                            birth_chain: HashSet::from([vec![0]]),
-                            death: f64::INFINITY,
-                            death_chain: HashSet::new(),
-                        },
-                    ],
-                ),
-                (
-                    1,
-                    vec![
-                        Interval {
-                            birth: 3.0,
-                            birth_chain: HashSet::from([vec![0, 2], vec![0, 1], vec![1, 2]]),
-                            death: 4.0,
-                            death_chain: HashSet::from([vec![0, 1, 2]]),
-                        },
-                        Interval {
-                            birth: 2.0,
-                            birth_chain: HashSet::from([vec![0, 3], vec![0, 1], vec![1, 2], vec![2, 3]]),
-                            death: 5.0,
-                            death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
-                        },
-                    ],
-                ),
-                (2, vec![]),
-            ],
-        );
+        let expected: HashMap<usize, Vec<Interval>> = HashMap::from([
+            (
+                0,
+                vec![
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![1]]),
+                        death: 1.0,
+                        death_chain: HashSet::from([vec![0, 1]]),
+                    },
+                    Interval {
+                        birth: 1.0,
+                        birth_chain: HashSet::from([vec![2]]),
+                        death: 1.0,
+                        death_chain: HashSet::from([vec![1, 2]]),
+                    },
+                    Interval {
+                        birth: 1.0,
+                        birth_chain: HashSet::from([vec![3]]),
+                        death: 2.0,
+                        death_chain: HashSet::from([vec![2, 3]]),
+                    },
+                    Interval {
+                        birth: 0.0,
+                        birth_chain: HashSet::from([vec![0]]),
+                        death: f64::INFINITY,
+                        death_chain: HashSet::new(),
+                    },
+                ],
+            ),
+            (
+                1,
+                vec![
+                    Interval {
+                        birth: 3.0,
+                        birth_chain: HashSet::from([vec![0, 2], vec![0, 1], vec![1, 2]]),
+                        death: 4.0,
+                        death_chain: HashSet::from([vec![0, 1, 2]]),
+                    },
+                    Interval {
+                        birth: 2.0,
+                        birth_chain: HashSet::from([vec![0, 3], vec![0, 1], vec![1, 2], vec![2, 3]]),
+                        death: 5.0,
+                        death_chain: HashSet::from([vec![0, 1, 2], vec![0, 2, 3]]),
+                    },
+                ],
+            ),
+            (2, vec![]),
+        ]);
         for (dim, intervals) in &all_intervals {
             debug!("=== {:?} ===", dim);
             let mut intervals_dim = Vec::new();
@@ -200,19 +201,13 @@ mod tests {
 
                 let death_chains: HashSet<Vec<usize>>;
                 if let Some(death_chain) = &interval.death_chain {
-                    death_chains = death_chain
-                        .iter()
-                        .map(|c| complex.chain(*c).vertices.clone())
-                        .collect();
+                    death_chains = death_chain.iter().map(|c| complex.chain(*c).vertices.clone()).collect();
                 } else {
                     death_chains = HashSet::new();
                 }
                 debug!(
                     "Birth: {:?} (level {:?} --- Death: {:?} (level {:?})",
-                    birth_chains,
-                    interval.birth,
-                    death_chains,
-                    interval.death
+                    birth_chains, interval.birth, death_chains, interval.death
                 );
                 intervals_dim.push(Interval {
                     birth: interval.birth,

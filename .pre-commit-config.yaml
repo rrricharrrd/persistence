@@ -28,7 +28,7 @@ repos:
 
   - id: cargo-fmt
     name: Cargo Fmt
-    entry: cargo fmt --all -- --force
+    entry: cargo fmt --check --all --
     language: system
     types: [rust]
 

@@ -17,7 +17,6 @@ fn generate_combinations<T: Clone + std::fmt::Debug>(
     }
 }
 
-
 pub fn generate_subsets<T: Clone + std::fmt::Debug>(v: &[T], n: usize) -> Vec<Vec<T>> {
     let mut subsets = vec![vec![]]; // Start with the empty subset
 
@@ -29,7 +28,6 @@ pub fn generate_subsets<T: Clone + std::fmt::Debug>(v: &[T], n: usize) -> Vec<Ve
 
     subsets
 }
-
 
 #[cfg(test)]
 mod tests {

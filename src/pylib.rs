@@ -1,13 +1,13 @@
 #[cfg(feature = "python")]
+use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 #[cfg(feature = "python")]
-use pyo3::types::{PyTuple, PyDict};
-#[cfg(feature = "python")]
-use numpy::{PyArray2, ToPyArray, PyReadonlyArray2};
+use pyo3::types::{PyDict, PyTuple};
 
-use ndarray::Array2;
-use super::point_cloud::PointCloud;
 use super::homology::ChainComplex;
+use super::point_cloud::PointCloud;
+use ndarray::Array2;
 
 #[cfg(feature = "python")]
 #[pyfunction]
@@ -26,7 +26,6 @@ pub fn persistence_intervals(
     max_dimension: usize,
     threshold: f64,
 ) -> Py<PyDict> {
-
     let points: Array2<f64> = points.as_array().into_owned();
     let point_cloud = PointCloud { points };
     let complex = point_cloud.vietoris_rips_complex(max_dimension, threshold);
@@ -34,7 +33,8 @@ pub fn persistence_intervals(
 
     let py_intervals = PyDict::new_bound(py);
     for (dim, ints) in intervals {
-        let py_list: Vec<_> = ints.iter()
+        let py_list: Vec<_> = ints
+            .iter()
             .map(|s| {
                 PyTuple::new_bound(
                     py,
