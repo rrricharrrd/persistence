@@ -2,6 +2,7 @@ use super::combinatorics::generate_subsets;
 use super::simplicial_complex::{Simplex, SimplicialComplex};
 use ndarray::{Array2, ArrayView1};
 use ordered_float::OrderedFloat;
+use rayon::prelude::*;
 use thiserror::Error;
 
 /// Error types for point cloud operations
@@ -103,17 +104,24 @@ impl PointCloud {
     /// A symmetric matrix of pairwise distances
     pub fn pairwise_distances(&self) -> Array2<f64> {
         let n = self.n_points();
-        let mut dist_matrix = Array2::<f64>::zeros((n, n));
+        let dist_matrix = std::sync::Arc::new(std::sync::Mutex::new(Array2::<f64>::zeros((n, n))));
 
-        for i in 0..n {
-            for j in i + 1..n {
-                let dist = euclidean_distance(self.points.row(i), self.points.row(j));
-                dist_matrix[(i, j)] = dist;
-                dist_matrix[(j, i)] = dist;
+        (0..n).into_par_iter().for_each(|i| {
+            let local_dists: Vec<(usize, usize, f64)> = (i + 1..n)
+                .map(|j| {
+                    let dist = euclidean_distance(self.points.row(i), self.points.row(j));
+                    (i, j, dist)
+                })
+                .collect();
+
+            let mut matrix = dist_matrix.lock().unwrap();
+            for (i, j, dist) in local_dists {
+                matrix[[i, j]] = dist;
+                matrix[[j, i]] = dist;
             }
-        }
+        });
 
-        dist_matrix
+        std::sync::Arc::try_unwrap(dist_matrix).unwrap().into_inner().unwrap()
     }
 
     /// Construct a Vietoris-Rips complex up to a given distance threshold.

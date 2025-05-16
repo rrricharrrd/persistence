@@ -10,19 +10,19 @@ pub enum CombinatoricsError {
 }
 
 /// Iterator over combinations of elements.
-pub struct Combinations<T> {
-    elements: Vec<T>,
+pub struct Combinations<'a, T> {
+    elements: &'a [T],
     indices: Vec<usize>,
     first: bool,
     size: usize,
 }
 
-impl<T: Clone> Combinations<T> {
+impl<'a, T: Clone> Combinations<'a, T> {
     /// Creates a new combinations iterator.
     ///
     /// # Arguments
     ///
-    /// * `elements` - Vector of elements to generate combinations from
+    /// * `elements` - Slice of elements to generate combinations from
     /// * `size` - Size of each combination
     ///
     /// # Returns
@@ -30,7 +30,7 @@ impl<T: Clone> Combinations<T> {
     /// A Result containing either the iterator or an error if:
     /// - The size exceeds the number of elements
     /// - The number of possible combinations is too large
-    pub fn new(elements: Vec<T>, size: usize) -> Result<Self, CombinatoricsError> {
+    pub fn new(elements: &'a [T], size: usize) -> Result<Self, CombinatoricsError> {
         let len = elements.len();
         if size > len {
             return Err(CombinatoricsError::InvalidSize { size, len });
@@ -46,7 +46,7 @@ impl<T: Clone> Combinations<T> {
     }
 }
 
-impl<T: Clone> Iterator for Combinations<T> {
+impl<T: Clone> Iterator for Combinations<'_, T> {
     type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -89,7 +89,7 @@ impl<T: Clone> Iterator for Combinations<T> {
 /// - The size exceeds the number of elements
 /// - The number of possible combinations is too large
 pub fn generate_combinations<T: Clone>(elements: &[T], size: usize) -> Result<Vec<Vec<T>>, CombinatoricsError> {
-    Combinations::new(elements.to_vec(), size).map(|iter| iter.collect())
+    Combinations::new(elements, size).map(|iter| iter.collect())
 }
 
 /// Generates all subsets up to a given size from a slice of elements.
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_combinations_iterator() {
         let elements = vec![1, 2, 3, 4];
-        let combinations = Combinations::new(elements.clone(), 2).unwrap();
+        let combinations = Combinations::new(&elements, 2).unwrap();
         let result: Vec<_> = combinations.collect();
         assert_eq!(result.len(), 6); // C(4,2) = 6
         assert!(result.contains(&vec![1, 2]));
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_invalid_combinations() {
         let elements = vec![1, 2, 3];
-        assert!(Combinations::new(elements.clone(), 4).is_err());
+        assert!(Combinations::new(&elements, 4).is_err());
     }
 
     #[test]
