@@ -46,19 +46,14 @@ impl Simplex {
     /// - All vertices are unique
     fn validate(&self) -> Result<(), SimplicialComplexError> {
         if self.vertices.is_empty() {
-            return Err(SimplicialComplexError::InvalidSimplex(
-                "Simplex must have at least one vertex".to_string(),
-            ));
+            return Err(SimplicialComplexError::InvalidSimplex("Simplex must have at least one vertex".to_string()));
         }
 
         // Check for duplicate vertices
         let mut seen = HashSet::new();
         for &v in &self.vertices {
             if !seen.insert(v) {
-                return Err(SimplicialComplexError::InvalidSimplex(format!(
-                    "Duplicate vertex {} in simplex",
-                    v
-                )));
+                return Err(SimplicialComplexError::InvalidSimplex(format!("Duplicate vertex {} in simplex", v)));
             }
         }
         Ok(())
@@ -120,17 +115,10 @@ impl SimplicialComplex {
         let (sorted_simplices, sorted_levels): (Vec<_>, Vec<_>) = paired.into_iter().unzip();
 
         // Construct mapping to be able to access "ith simplex"
-        let indexes: HashMap<Simplex, usize> = sorted_simplices
-            .iter()
-            .enumerate()
-            .map(|(i, s)| (s.clone(), i))
-            .collect();
+        let indexes: HashMap<Simplex, usize> =
+            sorted_simplices.iter().enumerate().map(|(i, s)| (s.clone(), i)).collect();
 
-        Ok(Self {
-            simplices: sorted_simplices,
-            levels: sorted_levels,
-            indexes,
-        })
+        Ok(Self { simplices: sorted_simplices, levels: sorted_levels, indexes })
     }
 
     /// Returns the index of a simplex in the complex, if it exists.
@@ -157,9 +145,9 @@ impl ChainComplex<Simplex> for SimplicialComplex {
         let mut bounds = HashSet::new();
 
         // For each vertex in the simplex, create a face by removing that vertex
-        for v in &s.vertices {
+        for &v in &s.vertices {
             let mut face_vertices = s.vertices.clone();
-            face_vertices.retain(|&x| x != *v);
+            face_vertices.retain(|x| *x != v);
 
             if !face_vertices.is_empty() {
                 let face = Simplex::new(face_vertices);
@@ -208,12 +196,13 @@ mod tests {
     fn test_simplicial_complex() {
         let _ = env_logger::try_init();
 
-        let simplex0 = Simplex { vertices: vec![0] };
-        let simplex1 = Simplex { vertices: vec![1] };
-        let simplex01 = Simplex { vertices: vec![0, 1] };
+        let simplex0 = Simplex::new(vec![0]);
+        let simplex1 = Simplex::new(vec![1]);
+        let simplex01 = Simplex::new(vec![0, 1]);
         let levels = vec![0.0, 1.0, 1.0];
         let complex = SimplicialComplex::new(vec![simplex0, simplex1, simplex01.clone()], levels).unwrap();
-        assert_eq!(simplex01.clone().dim(), 1);
+
+        assert_eq!(simplex01.dim(), 1);
         assert_eq!(complex.len(), 3);
         debug!("{:?}", complex);
 
@@ -239,12 +228,8 @@ mod tests {
             Simplex { vertices: vec![2, 3] },
             Simplex { vertices: vec![0, 3] },
             Simplex { vertices: vec![0, 2] },
-            Simplex {
-                vertices: vec![0, 1, 2],
-            },
-            Simplex {
-                vertices: vec![0, 2, 3],
-            },
+            Simplex { vertices: vec![0, 1, 2] },
+            Simplex { vertices: vec![0, 2, 3] },
         ];
         let levels = vec![0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 3.0, 4.0, 5.0];
         assert_eq!(simplices.len(), levels.len());
@@ -310,11 +295,8 @@ mod tests {
             debug!("=== {:?} ===", dim);
             let mut intervals_dim = Vec::new();
             for interval in intervals {
-                let birth_chains: HashSet<Vec<usize>> = interval
-                    .birth_chain
-                    .iter()
-                    .map(|c| complex.chain(*c).vertices.clone())
-                    .collect();
+                let birth_chains: HashSet<Vec<usize>> =
+                    interval.birth_chain.iter().map(|c| complex.chain(*c).vertices.clone()).collect();
 
                 let death_chains: HashSet<Vec<usize>>;
                 if let Some(death_chain) = &interval.death_chain {

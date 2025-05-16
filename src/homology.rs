@@ -105,11 +105,7 @@ pub trait ChainComplex<T: Chain + std::fmt::Debug> {
     /// Panics if the index is out of bounds.
     fn filtration_level(&self, index: usize) -> OrderedFloat<f64> {
         if index >= self.len() {
-            panic!(
-                "Index {} out of bounds for chain complex of length {}",
-                index,
-                self.len()
-            );
+            panic!("Index {} out of bounds for chain complex of length {}", index, self.len());
         }
         OrderedFloat(0.0)
     }

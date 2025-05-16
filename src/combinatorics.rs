@@ -42,12 +42,7 @@ impl<T: Clone> Combinations<T> {
             return Err(CombinatoricsError::TooLarge(n_combinations));
         }
 
-        Ok(Self {
-            elements,
-            indices: (0..size).collect(),
-            first: true,
-            size,
-        })
+        Ok(Self { elements, indices: (0..size).collect(), first: true, size })
     }
 }
 

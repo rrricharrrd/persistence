@@ -42,10 +42,9 @@ pub fn pairwise_distances(py: Python, points: PyReadonlyArray2<f64>) -> PyResult
     let points: Array2<f64> = points.as_array().into_owned();
     let point_cloud = PointCloud::new(points).map_err(|e| match e {
         PointCloudError::EmptyCloud => PyValueError::new_err("Empty point cloud"),
-        PointCloudError::DimensionMismatch { expected, got } => PyValueError::new_err(format!(
-            "Inconsistent point dimensions: expected {}, got {}",
-            expected, got
-        )),
+        PointCloudError::DimensionMismatch { expected, got } => {
+            PyValueError::new_err(format!("Inconsistent point dimensions: expected {}, got {}", expected, got))
+        },
         _ => PyRuntimeError::new_err(e.to_string()),
     })?;
 
@@ -90,10 +89,9 @@ pub fn persistence_intervals(
     let points: Array2<f64> = points.as_array().into_owned();
     let point_cloud = PointCloud::new(points).map_err(|e| match e {
         PointCloudError::EmptyCloud => PyValueError::new_err("Empty point cloud"),
-        PointCloudError::DimensionMismatch { expected, got } => PyValueError::new_err(format!(
-            "Inconsistent point dimensions: expected {}, got {}",
-            expected, got
-        )),
+        PointCloudError::DimensionMismatch { expected, got } => {
+            PyValueError::new_err(format!("Inconsistent point dimensions: expected {}, got {}", expected, got))
+        },
         _ => PyRuntimeError::new_err(e.to_string()),
     })?;
 

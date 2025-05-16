@@ -51,12 +51,7 @@ impl Point {
 ///
 /// The Euclidean distance between the points
 fn euclidean_distance(point1: ArrayView1<f64>, point2: ArrayView1<f64>) -> f64 {
-    point1
-        .iter()
-        .zip(point2.iter())
-        .map(|(a, b)| (a - b).powi(2))
-        .sum::<f64>()
-        .sqrt()
+    point1.iter().zip(point2.iter()).map(|(a, b)| (a - b).powi(2)).sum::<f64>().sqrt()
 }
 
 /// Represents a collection of points in d-dimensional space.
@@ -175,8 +170,7 @@ impl PointCloud {
             }
 
             if max_dist <= OrderedFloat(threshold) {
-                let simplex = Simplex::new(subset);
-                simplices.push(simplex);
+                simplices.push(Simplex::new(subset));
                 filtration.push(*max_dist);
             }
         }
@@ -217,9 +211,7 @@ mod tests {
     fn test_triangle() {
         let _ = env_logger::try_init();
 
-        let point_cloud = PointCloud {
-            points: array![[0.0, 0.0], [1.0, 0.0], [1.0, 2.0],],
-        };
+        let point_cloud = PointCloud::new(array![[0.0, 0.0], [1.0, 0.0], [1.0, 2.0],]).unwrap();
 
         let dist_matrix = point_cloud.pairwise_distances();
         let sqrt5 = (5.0 as f64).sqrt();
@@ -230,15 +222,13 @@ mod tests {
         debug!("Simplicial complex of {:?}", complex.simplices);
         debug!("Filtration {:?}", complex.levels);
         let expected = vec![
-            Simplex { vertices: vec![0] },
-            Simplex { vertices: vec![1] },
-            Simplex { vertices: vec![2] },
-            Simplex { vertices: vec![0, 1] },
-            Simplex { vertices: vec![1, 2] },
-            Simplex { vertices: vec![0, 2] },
-            Simplex {
-                vertices: vec![0, 1, 2],
-            },
+            Simplex::new(vec![0]),
+            Simplex::new(vec![1]),
+            Simplex::new(vec![2]),
+            Simplex::new(vec![0, 1]),
+            Simplex::new(vec![1, 2]),
+            Simplex::new(vec![0, 2]),
+            Simplex::new(vec![0, 1, 2]),
         ];
         assert_eq!(complex.simplices, expected);
 
@@ -251,9 +241,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         // Given
-        let point_cloud = PointCloud {
-            points: array![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0],],
-        };
+        let point_cloud = PointCloud { points: array![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0],] };
 
         // When
         let complex = point_cloud.vietoris_rips_complex(2, 10.0).unwrap();
@@ -330,11 +318,8 @@ mod tests {
             debug!("=== {:?} ===", dim);
             let mut intervals_dim = Vec::new();
             for interval in intervals {
-                let birth_chains: HashSet<Vec<usize>> = interval
-                    .birth_chain
-                    .iter()
-                    .map(|c| complex.chain(*c).vertices.clone())
-                    .collect();
+                let birth_chains: HashSet<Vec<usize>> =
+                    interval.birth_chain.iter().map(|c| complex.chain(*c).vertices.clone()).collect();
 
                 let death_chains: HashSet<Vec<usize>>;
                 if let Some(death_chain) = &interval.death_chain {
