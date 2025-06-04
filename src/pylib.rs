@@ -1,5 +1,5 @@
 #[cfg(feature = "python")]
-use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
+use numpy::{PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
 #[cfg(feature = "python")]
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 #[cfg(feature = "python")]
@@ -7,6 +7,7 @@ use pyo3::prelude::*;
 #[cfg(feature = "python")]
 use pyo3::types::{PyDict, PyTuple};
 
+use super::dbscan::dbscan as dbscan_rs;
 use super::homology::ChainComplex;
 use super::point_cloud::{PointCloud, PointCloudError};
 use ndarray::Array2;
@@ -17,9 +18,10 @@ use ndarray::Array2;
 /// using the Vietoris-Rips complex construction.
 #[cfg(feature = "python")]
 #[pymodule]
-pub fn persistence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn persistence(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pairwise_distances, m)?)?;
     m.add_function(wrap_pyfunction!(persistence_intervals, m)?)?;
+    m.add_function(wrap_pyfunction!(dbscan, m)?)?;
     Ok(())
 }
 
@@ -48,7 +50,7 @@ pub fn pairwise_distances(py: Python, points: PyReadonlyArray2<f64>) -> PyResult
         _ => PyRuntimeError::new_err(e.to_string()),
     })?;
 
-    Ok(point_cloud.pairwise_distances().to_pyarray_bound(py).into())
+    Ok(point_cloud.pairwise_distances().to_pyarray(py).into())
 }
 
 /// Compute persistence intervals for a point cloud.
@@ -102,12 +104,12 @@ pub fn persistence_intervals(
     let intervals = complex.persistence_intervals();
 
     // Convert to Python objects
-    let py_intervals = PyDict::new_bound(py);
+    let py_intervals = PyDict::new(py);
     for (dim, ints) in intervals {
         let py_list: Vec<_> = ints
             .iter()
             .map(|s| {
-                PyTuple::new_bound(
+                PyTuple::new(
                     py,
                     [
                         s.birth.into_py(py),
@@ -122,4 +124,33 @@ pub fn persistence_intervals(
     }
 
     Ok(py_intervals.into())
+}
+
+/// Clusters given points via DBSCAN algorithm.
+///
+/// # Arguments
+///
+/// * `points` - 2D numpy array where each row is a point and each column is a dimension
+/// * `epsilon` - Maximum distance to point to be considered in neighbourhood.
+/// * `min_points` - Minimum number of points in neighbourhood to be considered a "core" point
+///
+/// # Returns
+///
+/// A numpy array containing the cluster values (0 means noise).
+///
+/// # Raises
+///
+/// * TODO errors
+#[cfg(feature = "python")]
+#[pyfunction]
+pub fn dbscan(
+    py: Python,
+    points: PyReadonlyArray2<f64>,
+    epsilon: f64,
+    min_points: usize,
+) -> PyResult<Py<PyArray1<usize>>> {
+    let points: Array2<f64> = points.as_array().into_owned();
+    // TODO handle errors
+
+    Ok(dbscan_rs(points, epsilon, min_points).to_pyarray(py).into())
 }
