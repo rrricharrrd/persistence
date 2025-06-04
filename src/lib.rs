@@ -1,3 +1,4 @@
+pub mod dbscan;
 pub mod homology;
 pub mod point_cloud;
 pub mod simplicial_complex;
