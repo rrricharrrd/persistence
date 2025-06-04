@@ -8,6 +8,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
 use super::dbscan::dbscan as dbscan_rs;
+use super::dbscan::DBSCANError;
 use super::homology::ChainComplex;
 use super::point_cloud::{PointCloud, PointCloudError};
 use ndarray::Array2;
@@ -140,7 +141,7 @@ pub fn persistence_intervals(
 ///
 /// # Raises
 ///
-/// * TODO errors
+/// * ValueError if points array is empty
 #[cfg(feature = "python")]
 #[pyfunction]
 pub fn dbscan(
@@ -150,7 +151,9 @@ pub fn dbscan(
     min_points: usize,
 ) -> PyResult<Py<PyArray1<usize>>> {
     let points: Array2<f64> = points.as_array().into_owned();
-    // TODO handle errors
+    let result = dbscan_rs(points, epsilon, min_points).map_err(|e| match e {
+        DBSCANError::EmptyPoints => PyValueError::new_err("Empty point cloud"),
+    })?;
 
-    Ok(dbscan_rs(points, epsilon, min_points).to_pyarray(py).into())
+    Ok(result.to_pyarray(py).into())
 }

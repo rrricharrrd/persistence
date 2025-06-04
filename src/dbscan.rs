@@ -3,8 +3,20 @@ use std::collections::{HashSet, VecDeque};
 use super::point_cloud::PointCloud;
 use log::debug;
 use ndarray::Array2;
+use thiserror::Error;
 
-pub fn dbscan(points: Array2<f64>, epsilon: f64, min_points: usize) -> Vec<usize> {
+/// Error types for DBSCAN
+#[derive(Error, Debug)]
+pub enum DBSCANError {
+    #[error("Empty points")]
+    EmptyPoints,
+}
+
+pub fn dbscan(points: Array2<f64>, epsilon: f64, min_points: usize) -> Result<Vec<usize>, DBSCANError> {
+    if points.is_empty() {
+        return Err(DBSCANError::EmptyPoints);
+    }
+
     let unhandled_label: usize = usize::MAX;
     let noise_label: usize = 0;
     let mut label = noise_label + 1;
@@ -55,19 +67,26 @@ pub fn dbscan(points: Array2<f64>, epsilon: f64, min_points: usize) -> Vec<usize
         }
         label += 1;
     }
-    labels
+    Ok(labels)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ndarray::array;
+    use ndarray::{array, Array2};
+
+    #[test]
+    fn test_empty() {
+        let points = Array2::<f64>::zeros((0, 0));
+        let result = dbscan(points, 1.5, 2);
+        assert!(result.is_err());
+    }
 
     #[test]
     fn test_basic() {
         let points =
             array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 2.0], [0.0, 10.0], [1.0, 10.0], [0.0, 11.0], [10.0, 0.0]];
-        let result = dbscan(points, 1.5, 2);
+        let result = dbscan(points, 1.5, 2).unwrap();
         let expected = vec![1, 1, 1, 1, 2, 2, 2, 0];
         debug!("{:?}, {:?}", result, expected);
         assert_eq!(result, expected);
