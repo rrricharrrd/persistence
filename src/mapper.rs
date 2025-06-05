@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::combinatorics::generate_products;
 use super::dbscan::dbscan;
@@ -13,9 +13,33 @@ pub enum MapperError {
 }
 
 #[allow(dead_code)]
-struct Node<T> {
-    data: T,
-    adjacencies: Vec<Node<T>>,
+#[derive(Debug)]
+pub struct Graph<T> {
+    pub adjacency_list: HashMap<T, HashSet<T>>,
+}
+impl<T: Eq + std::hash::Hash + Clone> Default for Graph<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: Eq + std::hash::Hash + Clone> Graph<T> {
+    pub fn new() -> Self {
+        Self { adjacency_list: HashMap::new() }
+    }
+
+    pub fn add_node(&mut self, node: T) {
+        self.adjacency_list.entry(node).or_default();
+    }
+
+    pub fn add_edge(&mut self, from: T, to: T) {
+        self.adjacency_list.entry(from.clone()).or_default().insert(to);
+        self.adjacency_list.entry(from).or_default();
+    }
+
+    pub fn neighbors(&self, node: &T) -> Option<&HashSet<T>> {
+        self.adjacency_list.get(node)
+    }
 }
 
 fn select_rows(data: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
@@ -24,7 +48,14 @@ fn select_rows(data: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
     stack(Axis(0), &views).expect("Failed to stack selected rows")
 }
 
-pub fn mapper(points: Array2<f64>) -> Result<Vec<usize>, MapperError> {
+// Represents a node in the structure Mapper discovers
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Node {
+    segment: Vec<usize>,
+    cluster_label: usize,
+}
+
+pub fn mapper(points: Array2<f64>) -> Result<Graph<Node>, MapperError> {
     if points.is_empty() {
         return Err(MapperError::EmptyPoints);
     }
@@ -41,12 +72,13 @@ pub fn mapper(points: Array2<f64>) -> Result<Vec<usize>, MapperError> {
 
     let n_divisions = 3; // TODO make configurable
     let overlap = 0.1; // TODO make configurable
-    let epsilon = 0.1; // TODO make configurable
-    let min_points = 2; // TODO make configurable
+    let epsilon = 1.5; // TODO make configurable
+    let min_points = 1; // TODO make configurable
+    let mut graph = Graph::new();
 
     let slots: Vec<usize> = (0..n_divisions).collect();
     let box_indices = generate_products(&slots, points.ncols());
-    let mut overlaps: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut overlaps: HashMap<usize, Vec<Node>> = HashMap::new();
     for indices in box_indices.unwrap() {
         // TODO
         let box_mins: Vec<f64> = mins
@@ -74,30 +106,48 @@ pub fn mapper(points: Array2<f64>) -> Result<Vec<usize>, MapperError> {
         if box_points.is_empty() {
             continue;
         }
+
         let clustering = dbscan(select_rows(&points, &box_points), epsilon, min_points).unwrap();
+        let mut labels_seen: HashSet<usize> = HashSet::new();
+        println!("Box clustering {:?}", clustering);
         for (ix, &label) in clustering.iter().enumerate() {
-            if label != 0 {
+            if label == 0 {
                 // TODO ignore noise?
-                let _is_new = match overlaps.entry(ix) {
-                    std::collections::hash_map::Entry::Occupied(mut entry) => {
-                        entry.get_mut().push(label);
-                        false
-                    },
-                    std::collections::hash_map::Entry::Vacant(entry) => {
-                        entry.insert(vec![label]);
-                        true
-                    },
-                };
+                continue;
+            }
+            let node = Node { segment: indices.clone(), cluster_label: label };
+            if labels_seen.insert(label) {
+                graph.add_node(node.clone()); // TODO clone
+            }
+
+            let is_new = match overlaps.entry(ix) {
+                std::collections::hash_map::Entry::Occupied(mut entry) => {
+                    entry.get_mut().push(node.clone()); // TODO clone
+                    false
+                },
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    entry.insert(vec![node.clone()]);
+                    true
+                },
+            };
+            if is_new {
+                for n in overlaps.get(&ix).unwrap() {
+                    if *n != node {
+                        // TODO error
+                        graph.add_edge(node.clone(), n.clone());
+                        graph.add_edge(n.clone(), node.clone()); // TODO make undirected
+                    }
+                }
             }
         }
     }
-    Ok(vec![1, 2, 3])
+    Ok(graph)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log::debug;
+    // use log::debug;
     use ndarray::{array, Array2};
 
     #[test]
@@ -111,8 +161,7 @@ mod tests {
     fn test_basic() {
         let points = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 2.0], [0.0, 3.0]];
         let result = mapper(points).unwrap();
-        let expected = vec![1, 1, 1, 1, 2, 2, 2, 0];
-        debug!("{:?}, {:?}", result, expected);
+        println!("{:?}", result);
         // assert_eq!(result, expected);
     }
 }
