@@ -145,12 +145,13 @@ pub fn mapper(
                 // TODO ignore noise?
                 continue;
             }
+            let point = box_points[ix];
             let node = Node { segment: indices.clone(), cluster_label: label };
             if labels_seen.insert(label) {
                 graph.add_node(node.clone()); // TODO clone
             }
 
-            let is_new = match overlaps.entry(ix) {
+            let is_new = match overlaps.entry(point) {
                 std::collections::hash_map::Entry::Occupied(mut entry) => {
                     entry.get_mut().push(node.clone()); // TODO clone
                     false
@@ -161,7 +162,7 @@ pub fn mapper(
                 },
             };
             if !is_new {
-                for n in overlaps.get(&ix).unwrap() {
+                for n in overlaps.get(&point).unwrap() {
                     if *n != node {
                         // TODO error
                         graph.add_edge(node.clone(), n.clone());
@@ -170,7 +171,7 @@ pub fn mapper(
                 }
             }
         }
-        //println!("Overlaps {:?}", overlaps);
+        println!("Overlaps {:?}", overlaps);
     }
     Ok(graph)
 }
@@ -184,7 +185,7 @@ mod tests {
     #[test]
     fn test_empty() {
         let points = Array2::<f64>::zeros((0, 0));
-        let result = mapper(points, 2, 0.1, 3);
+        let result = mapper(points, 3, 0.1, 1);
         assert!(result.is_err());
     }
 
@@ -197,14 +198,15 @@ mod tests {
             [0.0, 0.0],
             [0.5, 0.0],
             [1.0, 0.0],
-            [1.0, 0.5],
-            [1.0, 1.0],
+            [1.5, 0.0],
+            [1.5, 0.5],
+            [1.5, 1.0],
+            [1.5, 1.5],
             [1.0, 1.5],
             [0.5, 1.5],
             [0.0, 1.5],
             [0.0, 1.0],
             [0.0, 0.5],
-            [1.5, 0.0],
             [2.0, 0.0],
             [2.5, 0.0],
             [3.0, 0.0]
