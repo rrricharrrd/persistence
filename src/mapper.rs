@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 use super::combinatorics::generate_products;
 use super::dbscan::dbscan;
@@ -42,6 +43,26 @@ impl<T: Eq + std::hash::Hash + Clone> Graph<T> {
     }
 }
 
+impl<T: Eq + std::hash::Hash + Clone + std::fmt::Display> Graph<T> {
+    pub fn to_dot(&self) -> String {
+        let mut dot = String::from("digraph G {\n");
+
+        for (node, neighbors) in &self.adjacency_list {
+            for neighbor in neighbors {
+                dot.push_str(&format!("    \"{}\" -> \"{}\";\n", node, neighbor));
+            }
+
+            // Ensure isolated nodes appear in the output
+            if neighbors.is_empty() {
+                dot.push_str(&format!("    \"{}\";\n", node));
+            }
+        }
+
+        dot.push_str("}\n");
+        dot
+    }
+}
+
 fn select_rows(data: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
     let views: Vec<_> = indices.iter().map(|&i| data.slice(ndarray::s![i, ..])).collect();
 
@@ -55,7 +76,19 @@ pub struct Node {
     cluster_label: usize,
 }
 
-pub fn mapper(points: Array2<f64>) -> Result<Graph<Node>, MapperError> {
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Write your desired output format
+        write!(f, "Node({:?}, {})", self.segment, self.cluster_label)
+    }
+}
+
+pub fn mapper(
+    points: Array2<f64>,
+    n_divisions: usize,
+    epsilon: f64,
+    min_points: usize,
+) -> Result<Graph<Node>, MapperError> {
     if points.is_empty() {
         return Err(MapperError::EmptyPoints);
     }
@@ -70,10 +103,7 @@ pub fn mapper(points: Array2<f64>) -> Result<Graph<Node>, MapperError> {
         .collect();
     println!("Minmaxes {:?} {:?}", mins, maxs);
 
-    let n_divisions = 3; // TODO make configurable
     let overlap = 0.1; // TODO make configurable
-    let epsilon = 1.5; // TODO make configurable
-    let min_points = 1; // TODO make configurable
     let mut graph = Graph::new();
 
     let slots: Vec<usize> = (0..n_divisions).collect();
@@ -130,7 +160,7 @@ pub fn mapper(points: Array2<f64>) -> Result<Graph<Node>, MapperError> {
                     true
                 },
             };
-            if is_new {
+            if !is_new {
                 for n in overlaps.get(&ix).unwrap() {
                     if *n != node {
                         // TODO error
@@ -140,6 +170,7 @@ pub fn mapper(points: Array2<f64>) -> Result<Graph<Node>, MapperError> {
                 }
             }
         }
+        //println!("Overlaps {:?}", overlaps);
     }
     Ok(graph)
 }
@@ -153,15 +184,34 @@ mod tests {
     #[test]
     fn test_empty() {
         let points = Array2::<f64>::zeros((0, 0));
-        let result = mapper(points);
+        let result = mapper(points, 2, 0.1, 3);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_basic() {
-        let points = array![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 2.0], [0.0, 3.0]];
-        let result = mapper(points).unwrap();
+        //  xxx
+        //  x x
+        //  xxx--x--x
+        let points = array![
+            [0.0, 0.0],
+            [0.5, 0.0],
+            [1.0, 0.0],
+            [1.0, 0.5],
+            [1.0, 1.0],
+            [1.0, 1.5],
+            [0.5, 1.5],
+            [0.0, 1.5],
+            [0.0, 1.0],
+            [0.0, 0.5],
+            [1.5, 0.0],
+            [2.0, 0.0],
+            [2.5, 0.0],
+            [3.0, 0.0]
+        ];
+        let result = mapper(points, 3, 0.51, 1).unwrap();
         println!("{:?}", result);
+        println!("{}", result.to_dot());
         // assert_eq!(result, expected);
     }
 }
