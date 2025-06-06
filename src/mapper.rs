@@ -3,6 +3,7 @@ use std::fmt;
 
 use super::combinatorics::generate_products;
 use super::dbscan::dbscan;
+use log::debug;
 use ndarray::{stack, Array2, Axis};
 use thiserror::Error;
 
@@ -41,6 +42,14 @@ impl<T: Eq + std::hash::Hash + Clone> Graph<T> {
     pub fn neighbors(&self, node: &T) -> Option<&HashSet<T>> {
         self.adjacency_list.get(node)
     }
+
+    pub fn len(&self) -> usize {
+        self.adjacency_list.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<T: Eq + std::hash::Hash + Clone + std::fmt::Display> Graph<T> {
@@ -65,7 +74,6 @@ impl<T: Eq + std::hash::Hash + Clone + std::fmt::Display> Graph<T> {
 
 fn select_rows(data: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
     let views: Vec<_> = indices.iter().map(|&i| data.slice(ndarray::s![i, ..])).collect();
-
     stack(Axis(0), &views).expect("Failed to stack selected rows")
 }
 
@@ -78,7 +86,6 @@ pub struct Node {
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Write your desired output format
         write!(f, "Node({:?}, {})", self.segment, self.cluster_label)
     }
 }
@@ -101,7 +108,7 @@ pub fn mapper(
         .axis_iter(Axis(1)) // iterate over columns
         .map(|col| col.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
         .collect();
-    println!("Minmaxes {:?} {:?}", mins, maxs);
+    debug!("Minmaxes {:?} {:?}", mins, maxs);
 
     let overlap = 0.1; // TODO make configurable
     let mut graph = Graph::new();
@@ -110,18 +117,17 @@ pub fn mapper(
     let box_indices = generate_products(&slots, points.ncols());
     let mut overlaps: HashMap<usize, Vec<Node>> = HashMap::new();
     for indices in box_indices.unwrap() {
-        // TODO
         let box_mins: Vec<f64> = mins
             .iter()
             .zip(maxs.iter())
             .zip(indices.iter())
-            .map(|((&lo, &hi), &ix)| lo - overlap / 2. + ((ix as f64) / (n_divisions as f64)) * (hi - lo))
+            .map(|((&lo, &hi), &ix)| lo + ((ix as f64) / (n_divisions as f64) - overlap / 2.) * (hi - lo))
             .collect();
         let box_maxs: Vec<f64> = mins
             .iter()
             .zip(maxs.iter())
             .zip(indices.iter())
-            .map(|((&lo, &hi), &ix)| lo + overlap / 2. + (((ix + 1) as f64) / (n_divisions as f64)) * (hi - lo))
+            .map(|((&lo, &hi), &ix)| lo + (((ix + 1) as f64) / (n_divisions as f64) + overlap / 2.) * (hi - lo))
             .collect();
 
         let box_points: Vec<usize> = points
@@ -132,14 +138,14 @@ pub fn mapper(
             })
             .map(|(ix, _)| ix)
             .collect();
-        println!("Box indices {:?} {:?} {:?} {:?}", indices.clone(), box_mins, box_maxs, box_points);
+        debug!("Box indices {:?} {:?} {:?} {:?}", indices.clone(), box_mins, box_maxs, box_points);
         if box_points.is_empty() {
             continue;
         }
 
         let clustering = dbscan(select_rows(&points, &box_points), epsilon, min_points).unwrap();
         let mut labels_seen: HashSet<usize> = HashSet::new();
-        println!("Box clustering {:?}", clustering);
+        debug!("Box clustering {:?}", clustering);
         for (ix, &label) in clustering.iter().enumerate() {
             if label == 0 {
                 // TODO ignore noise?
@@ -171,7 +177,6 @@ pub fn mapper(
                 }
             }
         }
-        println!("Overlaps {:?}", overlaps);
     }
     Ok(graph)
 }
@@ -191,9 +196,9 @@ mod tests {
 
     #[test]
     fn test_basic() {
-        //  xxx
+        //  x-x
         //  x x
-        //  xxx--x--x
+        //  x-x--x
         let points = array![
             [0.0, 0.0],
             [0.5, 0.0],
@@ -212,8 +217,8 @@ mod tests {
             [3.0, 0.0]
         ];
         let result = mapper(points, 3, 0.51, 1).unwrap();
-        println!("{:?}", result);
+        // println!("{:?}", result);
         println!("{}", result.to_dot());
-        // assert_eq!(result, expected);
+        assert_eq!(result.len(), 7); // TODO more tests
     }
 }
