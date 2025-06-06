@@ -5,13 +5,16 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 #[cfg(feature = "python")]
-use pyo3::types::{PyDict, PyTuple};
+use pyo3::types::{PyDict, PyList, PyTuple};
 
 use super::dbscan::dbscan as dbscan_rs;
 use super::dbscan::DBSCANError;
 use super::homology::ChainComplex;
+use super::mapper::mapper as mapper_rs;
+use super::mapper::{MapperError, Node};
 use super::point_cloud::{PointCloud, PointCloudError};
 use ndarray::Array2;
+use std::collections::HashMap;
 
 /// Python module providing persistent homology computation.
 ///
@@ -23,6 +26,7 @@ pub fn persistence(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pairwise_distances, m)?)?;
     m.add_function(wrap_pyfunction!(persistence_intervals, m)?)?;
     m.add_function(wrap_pyfunction!(dbscan, m)?)?;
+    m.add_function(wrap_pyfunction!(mapper, m)?)?;
     Ok(())
 }
 
@@ -131,9 +135,9 @@ pub fn persistence_intervals(
 ///
 /// # Arguments
 ///
-/// * `points` - 2D numpy array where each row is a point and each column is a dimension
+/// * `points` - 2D numpy array where each row is a point and each column is a dimension.
 /// * `epsilon` - Maximum distance to point to be considered in neighbourhood.
-/// * `min_points` - Minimum number of points in neighbourhood to be considered a "core" point
+/// * `min_points` - Minimum number of points in neighbourhood to be considered a "core" point.
 ///
 /// # Returns
 ///
@@ -141,7 +145,7 @@ pub fn persistence_intervals(
 ///
 /// # Raises
 ///
-/// * ValueError if points array is empty
+/// * ValueError if points array is empty.
 #[cfg(feature = "python")]
 #[pyfunction]
 pub fn dbscan(
@@ -156,4 +160,48 @@ pub fn dbscan(
     })?;
 
     Ok(result.to_pyarray(py).into())
+}
+
+/// Applies MAPPER structure-finding algorithm
+///
+/// # Arguments
+///
+/// * `points` - 2D numpy array where each row is a point and each column is a dimension.
+/// * `n_divisions` - Number of segments across each dimension used to construct nerve.
+/// * `epsilon` - Maximum distance to point to be considered in neighbourhood within segment.
+/// * `min_points` - Minimum number of points in neighbourhood to be considered a "core" point within segment.
+///
+/// # Returns
+///
+/// A dict representing the MAPPER graph (node labels are currently arbitrary and convey no meaning)
+///
+/// # Raises
+///
+/// * ValueError if points array is empty
+#[cfg(feature = "python")]
+#[pyfunction]
+pub fn mapper(
+    py: Python,
+    points: PyReadonlyArray2<f64>,
+    n_divisions: usize,
+    epsilon: f64,
+    min_points: usize,
+) -> PyResult<Py<PyDict>> {
+    let points: Array2<f64> = points.as_array().into_owned();
+    let result = mapper_rs(points, n_divisions, epsilon, min_points).map_err(|e| match e {
+        MapperError::EmptyPoints => PyValueError::new_err("Empty point cloud"),
+    })?;
+
+    let nodes: HashMap<Node, usize> =
+        result.adjacency_list.keys().cloned().enumerate().map(|(i, key)| (key, i)).collect();
+
+    // Convert to Python objects
+    let py_graph = PyDict::new(py);
+    for (node, neighbours) in result.adjacency_list {
+        let key = nodes[&node];
+        let value: &PyList = PyList::new(py, neighbours.iter().map(|n| nodes[&n]).collect::<Vec<usize>>());
+        py_graph.set_item(key, value)?;
+    }
+
+    Ok(py_graph.into())
 }

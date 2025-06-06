@@ -17,3 +17,33 @@ def test_dbscan():
 
     # Then
     np.testing.assert_array_almost_equal(result, expected)
+
+
+def test_mapper():
+    # Given
+    points = np.array(
+        [
+            [0.0, 0.0],
+            [0.5, 0.0],
+            [1.0, 0.0],
+            [1.5, 0.0],
+            [1.5, 0.5],
+            [1.5, 1.0],
+            [1.5, 1.5],
+            [1.0, 1.5],
+            [0.5, 1.5],
+            [0.0, 1.5],
+            [0.0, 1.0],
+            [0.0, 0.5],
+            [2.0, 0.0],
+            [2.5, 0.0],
+            [3.0, 0.0],
+        ]
+    )
+
+    # When
+    result = persistence.mapper(points, 3, 0.51, 1)
+    print(result)
+
+    # Then
+    assert len(result) == 7
